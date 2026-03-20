@@ -1,0 +1,5 @@
+column,unique_values,top_values
+customer_id,1800,RID-000001:1; RID-000002:1; RID-000003:1; RID-000004:1; RID-000005:1
+channel,4,online:670; agent:538; branch:374; partner:218
+region,4,north:493; east:467; south:429; west:411
+product_type,4,plus:600; basic:543; premium:460; enterprise:197

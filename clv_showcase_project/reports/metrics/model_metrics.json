@@ -1,0 +1,122 @@
+{
+  "regression": [
+    {
+      "model": "Ridge",
+      "r2": 0.7752399209145724,
+      "mae": 311.07678502203044,
+      "rmse": 399.5592075212259,
+      "mape": 8.181032002124075
+    },
+    {
+      "model": "Lasso",
+      "r2": 0.7752142513344578,
+      "mae": 311.1601550506372,
+      "rmse": 399.5820234596708,
+      "mape": 8.183433994999028
+    },
+    {
+      "model": "LinearRegression",
+      "r2": 0.7752139979491043,
+      "mae": 311.16074087195466,
+      "rmse": 399.5822486701308,
+      "mape": 8.18345454471224
+    },
+    {
+      "model": "RandomForestRegressor",
+      "r2": 0.7592457162630589,
+      "mae": 324.86703368055555,
+      "rmse": 413.5314713074612,
+      "mape": 8.541712883804545
+    },
+    {
+      "model": "GradientBoostingRegressor",
+      "r2": 0.7520196501762393,
+      "mae": 324.40951515184463,
+      "rmse": 419.69151505738694,
+      "mape": 8.486425707124754
+    },
+    {
+      "model": "XGBoostRegressor",
+      "r2": 0.7448241433826881,
+      "mae": 330.09299568684895,
+      "rmse": 425.7369510975874,
+      "mape": 8.612563098339415
+    }
+  ],
+  "classification": [
+    {
+      "model": "LogisticRegression",
+      "accuracy": 0.9166666666666666,
+      "precision": 0.7971014492753623,
+      "recall": 0.7746478873239436,
+      "f1": 0.7857142857142857,
+      "roc_auc": 0.9628636873141965,
+      "confusion_matrix": [
+        [
+          275,
+          14
+        ],
+        [
+          16,
+          55
+        ]
+      ]
+    },
+    {
+      "model": "XGBoostClassifier",
+      "accuracy": 0.9111111111111111,
+      "precision": 0.7671232876712328,
+      "recall": 0.7887323943661971,
+      "f1": 0.7777777777777778,
+      "roc_auc": 0.9553097129489742,
+      "confusion_matrix": [
+        [
+          272,
+          17
+        ],
+        [
+          15,
+          56
+        ]
+      ]
+    },
+    {
+      "model": "GradientBoostingClassifier",
+      "accuracy": 0.9111111111111111,
+      "precision": 0.782608695652174,
+      "recall": 0.7605633802816901,
+      "f1": 0.7714285714285715,
+      "roc_auc": 0.9474145913543545,
+      "confusion_matrix": [
+        [
+          274,
+          15
+        ],
+        [
+          17,
+          54
+        ]
+      ]
+    },
+    {
+      "model": "RandomForestClassifier",
+      "accuracy": 0.9083333333333333,
+      "precision": 0.7878787878787878,
+      "recall": 0.7323943661971831,
+      "f1": 0.7591240875912408,
+      "roc_auc": 0.9527754763877383,
+      "confusion_matrix": [
+        [
+          275,
+          14
+        ],
+        [
+          19,
+          52
+        ]
+      ]
+    }
+  ],
+  "selected_regression_model": "Ridge",
+  "selected_classification_model": "LogisticRegression"
+}

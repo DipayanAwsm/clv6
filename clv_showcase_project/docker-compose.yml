@@ -1,0 +1,28 @@
+version: '3.9'
+
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: clv_backend
+    ports:
+      - '8000:8000'
+    environment:
+      - CLV_PROJECT_ROOT=/app
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+      - HIGH_VALUE_QUANTILE=0.8
+    volumes:
+      - ./data:/app/data
+      - ./reports:/app/reports
+      - ./backend/models:/app/models
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: clv_frontend
+    ports:
+      - '3000:3000'
+    depends_on:
+      - backend

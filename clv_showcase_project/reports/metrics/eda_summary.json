@@ -1,0 +1,56 @@
+{
+  "numeric_columns": [
+    "age",
+    "annual_income",
+    "tenure_months",
+    "days_since_last_purchase",
+    "transactions",
+    "total_spend",
+    "premium_amount",
+    "claims_count",
+    "complaints_count",
+    "renewals_count",
+    "policies_count",
+    "clv"
+  ],
+  "categorical_columns": [
+    "customer_id",
+    "channel",
+    "region",
+    "product_type"
+  ],
+  "top_drivers": [
+    {
+      "feature": "total_spend",
+      "abs_corr": 0.6727738112589322
+    },
+    {
+      "feature": "premium_amount",
+      "abs_corr": 0.6409205518352634
+    },
+    {
+      "feature": "transactions",
+      "abs_corr": 0.5673237620181528
+    },
+    {
+      "feature": "annual_income",
+      "abs_corr": 0.49071484476323735
+    },
+    {
+      "feature": "renewals_count",
+      "abs_corr": 0.23039491641980114
+    },
+    {
+      "feature": "tenure_months",
+      "abs_corr": 0.2149940804812439
+    },
+    {
+      "feature": "days_since_last_purchase",
+      "abs_corr": 0.1641336871286034
+    },
+    {
+      "feature": "policies_count",
+      "abs_corr": 0.13420513847730228
+    }
+  ]
+}

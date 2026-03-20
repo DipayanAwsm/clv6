@@ -1,0 +1,235 @@
+{
+  "methods": {
+    "correlation_top": [
+      "total_spend",
+      "monetary",
+      "premium_amount",
+      "engagement_score",
+      "transactions",
+      "frequency",
+      "annual_income",
+      "average_order_value",
+      "renewal_ratio",
+      "renewals_count"
+    ],
+    "mutual_info_top": [
+      "monetary",
+      "total_spend",
+      "premium_amount",
+      "engagement_score",
+      "transactions",
+      "frequency",
+      "annual_income",
+      "monetary_per_tenure",
+      "average_order_value",
+      "complaint_rate"
+    ],
+    "rfecv_selected": [
+      "age",
+      "annual_income",
+      "tenure_months",
+      "total_spend",
+      "premium_amount",
+      "recency",
+      "monetary",
+      "average_order_value",
+      "renewal_ratio",
+      "premium_efficiency",
+      "engagement_score"
+    ],
+    "rf_importance_top": [
+      "annual_income",
+      "total_spend",
+      "monetary",
+      "engagement_score",
+      "premium_amount",
+      "tenure_months",
+      "average_order_value",
+      "renewal_ratio",
+      "premium_efficiency",
+      "age"
+    ],
+    "lasso_top": [
+      "total_spend",
+      "annual_income",
+      "renewal_ratio",
+      "transactions",
+      "days_since_last_purchase",
+      "tenure_months",
+      "complaint_rate",
+      "renewals_count",
+      "average_order_value",
+      "engagement_score"
+    ]
+  },
+  "final_shortlist": [
+    "total_spend",
+    "annual_income",
+    "monetary",
+    "average_order_value",
+    "frequency",
+    "premium_efficiency",
+    "age",
+    "renewals_count",
+    "monetary_per_tenure",
+    "complaints_count",
+    "claim_rate",
+    "tenure_band",
+    "region",
+    "channel",
+    "engagement_style"
+  ],
+  "top_ranked": [
+    {
+      "feature": "total_spend",
+      "correlation": 0.6727738112589324,
+      "mutual_info": 0.3015292899408406,
+      "rf_importance": 0.2111521833196823,
+      "rfecv": 1,
+      "lasso_abs_coef": 404.3249327248887,
+      "combined_score": 0.9882630440075136,
+      "selection_votes": 5.0
+    },
+    {
+      "feature": "annual_income",
+      "correlation": 0.4907148447632375,
+      "mutual_info": 0.1520165718230304,
+      "rf_importance": 0.224195957052519,
+      "rfecv": 1,
+      "lasso_abs_coef": 392.24611712510375,
+      "combined_score": 0.8407154276607101,
+      "selection_votes": 5.0
+    },
+    {
+      "feature": "monetary",
+      "correlation": 0.6727738112589324,
+      "mutual_info": 0.3015838949794887,
+      "rf_importance": 0.20323987516508404,
+      "rfecv": 1,
+      "lasso_abs_coef": 0.0,
+      "combined_score": 0.7812016253364618,
+      "selection_votes": 4.0
+    },
+    {
+      "feature": "engagement_score",
+      "correlation": 0.5729499949615835,
+      "mutual_info": 0.20098904448242827,
+      "rf_importance": 0.164101378950035,
+      "rfecv": 1,
+      "lasso_abs_coef": 26.561946195292386,
+      "combined_score": 0.6628455477500542,
+      "selection_votes": 5.0
+    },
+    {
+      "feature": "premium_amount",
+      "correlation": 0.6409205518352636,
+      "mutual_info": 0.26859904623077036,
+      "rf_importance": 0.043802048796877976,
+      "rfecv": 1,
+      "lasso_abs_coef": 25.702444983555,
+      "combined_score": 0.6195501571119967,
+      "selection_votes": 4.0
+    },
+    {
+      "feature": "renewal_ratio",
+      "correlation": 0.2800538061312853,
+      "mutual_info": 0.056482155761134134,
+      "rf_importance": 0.013165526726885675,
+      "rfecv": 1,
+      "lasso_abs_coef": 180.6422403979287,
+      "combined_score": 0.4207634332879745,
+      "selection_votes": 4.0
+    },
+    {
+      "feature": "average_order_value",
+      "correlation": 0.3428547729700656,
+      "mutual_info": 0.08345126557437332,
+      "rf_importance": 0.01582830068953635,
+      "rfecv": 1,
+      "lasso_abs_coef": 31.888320541512574,
+      "combined_score": 0.38612491186897013,
+      "selection_votes": 5.0
+    },
+    {
+      "feature": "transactions",
+      "correlation": 0.5673237620181529,
+      "mutual_info": 0.189296515928012,
+      "rf_importance": 0.003505732517030408,
+      "rfecv": 0,
+      "lasso_abs_coef": 141.94504111987888,
+      "combined_score": 0.36643316943435666,
+      "selection_votes": 3.0
+    },
+    {
+      "feature": "tenure_months",
+      "correlation": 0.21499408048124424,
+      "mutual_info": 0.03479434497048661,
+      "rf_importance": 0.02441497541357395,
+      "rfecv": 1,
+      "lasso_abs_coef": 105.61492137359434,
+      "combined_score": 0.3600188655893718,
+      "selection_votes": 3.0
+    },
+    {
+      "feature": "frequency",
+      "correlation": 0.5673237620181529,
+      "mutual_info": 0.1887156826980947,
+      "rf_importance": 0.003305443493218128,
+      "rfecv": 0,
+      "lasso_abs_coef": 3.4028373209616025,
+      "combined_score": 0.29733818295549824,
+      "selection_votes": 2.0
+    },
+    {
+      "feature": "recency",
+      "correlation": 0.16413368712860357,
+      "mutual_info": 0.0,
+      "rf_importance": 0.00835145567879609,
+      "rfecv": 1,
+      "lasso_abs_coef": 12.684736931604437,
+      "combined_score": 0.26144721184541087,
+      "selection_votes": 1.0
+    },
+    {
+      "feature": "premium_efficiency",
+      "correlation": 0.0035041724111083694,
+      "mutual_info": 0.003458017762985044,
+      "rf_importance": 0.012243985247715446,
+      "rfecv": 1,
+      "lasso_abs_coef": 0.05028548539475878,
+      "combined_score": 0.21323112182161924,
+      "selection_votes": 2.0
+    },
+    {
+      "feature": "age",
+      "correlation": 0.0024372281717249546,
+      "mutual_info": 0.0,
+      "rf_importance": 0.011545782100562386,
+      "rfecv": 1,
+      "lasso_abs_coef": 4.579399305158803,
+      "combined_score": 0.21223472626939127,
+      "selection_votes": 2.0
+    },
+    {
+      "feature": "complaint_rate",
+      "correlation": 0.22280316670711633,
+      "mutual_info": 0.0751291431238501,
+      "rf_importance": 0.0035179660149185113,
+      "rfecv": 0,
+      "lasso_abs_coef": 44.59313339897214,
+      "combined_score": 0.14015905387386118,
+      "selection_votes": 2.0
+    },
+    {
+      "feature": "days_since_last_purchase",
+      "correlation": 0.16413368712860357,
+      "mutual_info": 0.0,
+      "rf_importance": 0.008140657149278963,
+      "rfecv": 0,
+      "lasso_abs_coef": 117.65461299493882,
+      "combined_score": 0.11318164149183978,
+      "selection_votes": 1.0
+    }
+  ],
+  "selection_notes": []
+}

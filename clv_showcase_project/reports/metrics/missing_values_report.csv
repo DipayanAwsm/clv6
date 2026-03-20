@@ -1,0 +1,17 @@
+column,missing_count
+customer_id,0
+age,0
+annual_income,0
+tenure_months,0
+days_since_last_purchase,0
+transactions,0
+total_spend,0
+premium_amount,0
+claims_count,0
+complaints_count,0
+renewals_count,0
+policies_count,0
+channel,0
+region,0
+product_type,0
+clv,0
