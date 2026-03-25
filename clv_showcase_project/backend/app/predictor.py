@@ -8,7 +8,7 @@ import joblib
 import numpy as np
 import pandas as pd
 
-from app.config import MODELS_ROOT
+from app.config import MLFLOW_TRACKING_URI, MODELS_ROOT, USE_MLFLOW_MODELS
 from app.insights import (
     confidence_band,
     customer_segment_from_clv,
@@ -21,6 +21,12 @@ from app.insights import (
 from app.utils import get_logger, read_json
 
 LOGGER = get_logger("clv-predictor")
+
+try:
+    import mlflow
+    import mlflow.sklearn
+except Exception:  # pragma: no cover - optional dependency at runtime
+    mlflow = None  # type: ignore[assignment]
 
 
 @dataclass
@@ -42,15 +48,39 @@ class CLVPredictor:
         prep_path = self.models_root / "preprocessing.pkl"
         metadata_path = self.models_root / "metadata.json"
 
-        if not reg_path.exists() or not cls_path.exists() or not metadata_path.exists():
+        if not metadata_path.exists():
             raise FileNotFoundError(
                 "Required model artifacts are missing. Run backend/training/run_pipeline.py first."
             )
 
-        regressor = joblib.load(reg_path)
-        classifier = joblib.load(cls_path)
-        preprocessing = joblib.load(prep_path) if prep_path.exists() else None
         metadata = read_json(metadata_path, default={})
+        regressor = None
+        classifier = None
+        preprocessing = joblib.load(prep_path) if prep_path.exists() else None
+
+        mlflow_info = metadata.get("mlflow", {})
+        mlflow_reg_uri = mlflow_info.get("regressor_model_uri")
+        mlflow_cls_uri = mlflow_info.get("classifier_model_uri")
+        should_try_mlflow = USE_MLFLOW_MODELS or (not reg_path.exists() or not cls_path.exists())
+
+        if should_try_mlflow and mlflow and mlflow_reg_uri and mlflow_cls_uri:
+            try:
+                mlflow.set_tracking_uri(mlflow_info.get("tracking_uri") or MLFLOW_TRACKING_URI)
+                regressor = mlflow.sklearn.load_model(mlflow_reg_uri)
+                classifier = mlflow.sklearn.load_model(mlflow_cls_uri)
+                LOGGER.info("Loaded models from MLflow run %s", mlflow_info.get("run_id"))
+            except Exception as exc:
+                LOGGER.warning("Failed to load models from MLflow; falling back to local artifacts: %s", exc)
+
+        if regressor is None or classifier is None:
+            if not reg_path.exists() or not cls_path.exists():
+                raise FileNotFoundError(
+                    "Model artifacts unavailable locally and MLflow loading failed. "
+                    "Run training pipeline or enable valid MLflow URIs."
+                )
+            regressor = joblib.load(reg_path)
+            classifier = joblib.load(cls_path)
+
         return PredictionArtifactBundle(regressor, classifier, preprocessing, metadata)
 
     @property
@@ -71,11 +101,14 @@ class CLVPredictor:
     @property
     def model_context(self) -> Dict[str, Any]:
         metadata = self.bundle.metadata
+        mlflow_meta = metadata.get("mlflow", {})
         return {
             "regression_model": metadata.get("regression_model_selected", "unknown"),
             "classification_model": metadata.get("classification_model_selected", "unknown"),
             "high_value_threshold_value": float(metadata.get("high_value_threshold_value", 0.0)),
             "high_value_quantile": metadata.get("high_value_quantile"),
+            "mlflow_enabled": bool(mlflow_meta.get("enabled", False)),
+            "mlflow_run_id": mlflow_meta.get("run_id"),
         }
 
     def _prepare_dataframes(self, records: List[Dict[str, Any]]) -> Tuple[pd.DataFrame, pd.DataFrame]:

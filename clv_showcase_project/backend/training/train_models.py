@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import nullcontext
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Tuple
@@ -31,9 +32,20 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-from app.config import MODELS_ROOT
+from app.config import (
+    ENABLE_MLFLOW,
+    MLFLOW_EXPERIMENT_NAME,
+    MLFLOW_TRACKING_URI,
+    MODELS_ROOT,
+)
 from app.utils import write_json
 from training.common import LOGGER, METRICS_DIR, SAMPLE_INPUT_DIR
+
+try:
+    import mlflow
+    import mlflow.sklearn
+except Exception:  # pragma: no cover - optional dependency
+    mlflow = None  # type: ignore[assignment]
 
 
 @dataclass
@@ -45,6 +57,10 @@ class TrainingResult:
     high_value_threshold_value: float
     train_rows: int
     test_rows: int
+    mlflow_enabled: bool
+    mlflow_run_id: str | None
+    mlflow_regressor_uri: str | None
+    mlflow_classifier_uri: str | None
 
 
 def _safe_mape(y_true: pd.Series, y_pred: np.ndarray) -> float | None:
@@ -54,6 +70,27 @@ def _safe_mape(y_true: pd.Series, y_pred: np.ndarray) -> float | None:
     if non_zero.sum() == 0:
         return None
     return float(np.mean(np.abs((y_true_np[non_zero] - y_pred_np[non_zero]) / y_true_np[non_zero])) * 100)
+
+
+def _to_float(value: Any) -> float | None:
+    try:
+        if value is None:
+            return None
+        val = float(value)
+        if np.isnan(val) or np.isinf(val):
+            return None
+        return val
+    except Exception:
+        return None
+
+
+def _mlflow_log_metrics(metrics: Dict[str, Any]) -> None:
+    if mlflow is None:
+        return
+    for key, value in metrics.items():
+        safe_value = _to_float(value)
+        if safe_value is not None:
+            mlflow.log_metric(key, safe_value)
 
 
 def _build_preprocessor(X: pd.DataFrame, scale_numeric: bool) -> ColumnTransformer:
@@ -235,58 +272,146 @@ def train_and_select_models(
             "Unable to build classification target with at least two classes even after fallback."
         )
 
+    mlflow_enabled = ENABLE_MLFLOW and mlflow is not None
+    if ENABLE_MLFLOW and mlflow is None:
+        LOGGER.warning("MLflow integration requested but mlflow package is unavailable.")
+
+    mlflow_run_id: str | None = None
+    mlflow_regressor_uri: str | None = None
+    mlflow_classifier_uri: str | None = None
+    if mlflow_enabled:
+        try:
+            mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+            mlflow.set_experiment(MLFLOW_EXPERIMENT_NAME)
+        except Exception as exc:
+            LOGGER.warning("Failed to initialize MLflow tracking; proceeding without MLflow. %s", exc)
+            mlflow_enabled = False
+
     reg_metrics: List[Dict[str, Any]] = []
     cls_metrics: List[Dict[str, Any]] = []
     trained_reg_models: Dict[str, Pipeline] = {}
     trained_cls_models: Dict[str, Pipeline] = {}
+    parent_run_ctx = (
+        mlflow.start_run(run_name=f"clv_training_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}")
+        if mlflow_enabled
+        else nullcontext()
+    )
 
-    for name, estimator, scale_numeric in _regression_candidates():
-        preprocessor = _build_preprocessor(X_train, scale_numeric=scale_numeric)
-        pipeline = Pipeline([("preprocessor", preprocessor), ("model", estimator)])
-        pipeline.fit(X_train, y_train_reg)
-        pred = pipeline.predict(X_test)
+    with parent_run_ctx as active_run:
+        if mlflow_enabled and active_run is not None:
+            mlflow_run_id = active_run.info.run_id
+            mlflow.log_params(
+                {
+                    "dataset_type": str(dataset_meta.get("dataset_type")),
+                    "target_column": target_col,
+                    "classification_target_column": classification_target_col
+                    or "derived_from_clv_quantile",
+                    "high_value_quantile": high_value_quantile,
+                    "selected_feature_count": len(usable_features),
+                    "train_rows": int(len(X_train)),
+                    "test_rows": int(len(X_test)),
+                }
+            )
+            if usable_features:
+                mlflow.log_text(
+                    "\n".join(usable_features), "feature_artifacts/selected_features.txt"
+                )
+            notes = dataset_meta.get("notes", [])
+            if notes:
+                mlflow.log_text("\n".join(str(note) for note in notes), "feature_artifacts/run_notes.txt")
 
-        rmse = float(np.sqrt(mean_squared_error(y_test_reg, pred)))
-        mape = _safe_mape(y_test_reg, pred)
-        reg_metrics.append(
-            {
-                "model": name,
-                "r2": float(r2_score(y_test_reg, pred)),
-                "mae": float(mean_absolute_error(y_test_reg, pred)),
-                "rmse": rmse,
-                "mape": mape,
-            }
-        )
-        trained_reg_models[name] = pipeline
+        for name, estimator, scale_numeric in _regression_candidates():
+            candidate_ctx = (
+                mlflow.start_run(run_name=f"regression_{name}", nested=True)
+                if mlflow_enabled
+                else nullcontext()
+            )
+            with candidate_ctx:
+                preprocessor = _build_preprocessor(X_train, scale_numeric=scale_numeric)
+                pipeline = Pipeline([("preprocessor", preprocessor), ("model", estimator)])
+                pipeline.fit(X_train, y_train_reg)
+                pred = pipeline.predict(X_test)
 
-    for name, estimator, scale_numeric in _classification_candidates():
-        preprocessor = _build_preprocessor(X_train, scale_numeric=scale_numeric)
-        pipeline = Pipeline([("preprocessor", preprocessor), ("model", estimator)])
-        pipeline.fit(X_train, y_train_cls)
+                rmse = float(np.sqrt(mean_squared_error(y_test_reg, pred)))
+                mape = _safe_mape(y_test_reg, pred)
+                metric_row = {
+                    "model": name,
+                    "r2": float(r2_score(y_test_reg, pred)),
+                    "mae": float(mean_absolute_error(y_test_reg, pred)),
+                    "rmse": rmse,
+                    "mape": mape,
+                }
+                reg_metrics.append(metric_row)
+                trained_reg_models[name] = pipeline
 
-        pred = pipeline.predict(X_test)
-        if hasattr(pipeline, "predict_proba"):
-            prob = pipeline.predict_proba(X_test)[:, 1]
-        else:
-            prob = pred.astype(float)
+                if mlflow_enabled:
+                    try:
+                        mlflow.log_params({"track": "regression", "algorithm": name})
+                        _mlflow_log_metrics(
+                            {
+                                "r2": metric_row["r2"],
+                                "mae": metric_row["mae"],
+                                "rmse": metric_row["rmse"],
+                                "mape": metric_row["mape"],
+                            }
+                        )
+                        mlflow.sklearn.log_model(
+                            pipeline, artifact_path=f"candidates/regression/{name}"
+                        )
+                    except Exception as exc:
+                        LOGGER.warning("MLflow logging failed for regression model %s: %s", name, exc)
 
-        try:
-            roc = float(roc_auc_score(y_test_cls, prob))
-        except Exception:
-            roc = float("nan")
+        for name, estimator, scale_numeric in _classification_candidates():
+            candidate_ctx = (
+                mlflow.start_run(run_name=f"classification_{name}", nested=True)
+                if mlflow_enabled
+                else nullcontext()
+            )
+            with candidate_ctx:
+                preprocessor = _build_preprocessor(X_train, scale_numeric=scale_numeric)
+                pipeline = Pipeline([("preprocessor", preprocessor), ("model", estimator)])
+                pipeline.fit(X_train, y_train_cls)
 
-        cls_metrics.append(
-            {
-                "model": name,
-                "accuracy": float(accuracy_score(y_test_cls, pred)),
-                "precision": float(precision_score(y_test_cls, pred, zero_division=0)),
-                "recall": float(recall_score(y_test_cls, pred, zero_division=0)),
-                "f1": float(f1_score(y_test_cls, pred, zero_division=0)),
-                "roc_auc": roc,
-                "confusion_matrix": confusion_matrix(y_test_cls, pred).tolist(),
-            }
-        )
-        trained_cls_models[name] = pipeline
+                pred = pipeline.predict(X_test)
+                if hasattr(pipeline, "predict_proba"):
+                    prob = pipeline.predict_proba(X_test)[:, 1]
+                else:
+                    prob = pred.astype(float)
+
+                try:
+                    roc = float(roc_auc_score(y_test_cls, prob))
+                except Exception:
+                    roc = float("nan")
+
+                metric_row = {
+                    "model": name,
+                    "accuracy": float(accuracy_score(y_test_cls, pred)),
+                    "precision": float(precision_score(y_test_cls, pred, zero_division=0)),
+                    "recall": float(recall_score(y_test_cls, pred, zero_division=0)),
+                    "f1": float(f1_score(y_test_cls, pred, zero_division=0)),
+                    "roc_auc": roc,
+                    "confusion_matrix": confusion_matrix(y_test_cls, pred).tolist(),
+                }
+                cls_metrics.append(metric_row)
+                trained_cls_models[name] = pipeline
+
+                if mlflow_enabled:
+                    try:
+                        mlflow.log_params({"track": "classification", "algorithm": name})
+                        _mlflow_log_metrics(
+                            {
+                                "accuracy": metric_row["accuracy"],
+                                "precision": metric_row["precision"],
+                                "recall": metric_row["recall"],
+                                "f1": metric_row["f1"],
+                                "roc_auc": metric_row["roc_auc"],
+                            }
+                        )
+                        mlflow.sklearn.log_model(
+                            pipeline, artifact_path=f"candidates/classification/{name}"
+                        )
+                    except Exception as exc:
+                        LOGGER.warning("MLflow logging failed for classification model %s: %s", name, exc)
 
     reg_df = pd.DataFrame(reg_metrics)
     reg_df["r2"] = reg_df["r2"].replace([np.inf, -np.inf], np.nan)
@@ -313,8 +438,55 @@ def train_and_select_models(
         "classification": cls_df.to_dict(orient="records"),
         "selected_regression_model": best_reg_name,
         "selected_classification_model": best_cls_name,
+        "mlflow": {
+            "enabled": bool(mlflow_enabled),
+            "tracking_uri": MLFLOW_TRACKING_URI if mlflow_enabled else None,
+            "experiment_name": MLFLOW_EXPERIMENT_NAME if mlflow_enabled else None,
+            "run_id": mlflow_run_id,
+            "regressor_model_uri": mlflow_regressor_uri,
+            "classifier_model_uri": mlflow_classifier_uri,
+        },
     }
     write_json(METRICS_DIR / "model_metrics.json", metric_payload)
+
+    if mlflow_enabled and mlflow_run_id:
+        try:
+            with mlflow.start_run(run_id=mlflow_run_id):
+                mlflow.log_params(
+                    {
+                        "best_regression_model": best_reg_name,
+                        "best_classification_model": best_cls_name,
+                    }
+                )
+                best_reg_row = reg_df[reg_df["model"] == best_reg_name].iloc[0].to_dict()
+                best_cls_row = cls_df[cls_df["model"] == best_cls_name].iloc[0].to_dict()
+                _mlflow_log_metrics(
+                    {
+                        "best_regression_r2": best_reg_row.get("r2"),
+                        "best_regression_rmse": best_reg_row.get("rmse"),
+                        "best_regression_mae": best_reg_row.get("mae"),
+                        "best_classification_f1": best_cls_row.get("f1"),
+                        "best_classification_recall": best_cls_row.get("recall"),
+                        "best_classification_precision": best_cls_row.get("precision"),
+                        "best_classification_accuracy": best_cls_row.get("accuracy"),
+                        "best_classification_roc_auc": best_cls_row.get("roc_auc"),
+                    }
+                )
+                mlflow.sklearn.log_model(best_reg_model, artifact_path="models/clv_regressor")
+                mlflow.sklearn.log_model(
+                    best_cls_model, artifact_path="models/high_value_classifier"
+                )
+                mlflow.log_artifact(
+                    str(METRICS_DIR / "regression_metrics.csv"), artifact_path="reports"
+                )
+                mlflow.log_artifact(
+                    str(METRICS_DIR / "classification_metrics.csv"), artifact_path="reports"
+                )
+                mlflow.log_artifact(str(METRICS_DIR / "model_metrics.json"), artifact_path="reports")
+                mlflow_regressor_uri = f"runs:/{mlflow_run_id}/models/clv_regressor"
+                mlflow_classifier_uri = f"runs:/{mlflow_run_id}/models/high_value_classifier"
+        except Exception as exc:
+            LOGGER.warning("Failed to log final models to MLflow: %s", exc)
 
     metadata = {
         "created_at": datetime.utcnow().isoformat() + "Z",
@@ -331,6 +503,14 @@ def train_and_select_models(
         "classification_model_selected": best_cls_name,
         "notes": dataset_meta.get("notes", []),
         "classification_target_column": classification_target_col or "derived_from_clv_quantile",
+        "mlflow": {
+            "enabled": bool(mlflow_enabled),
+            "tracking_uri": MLFLOW_TRACKING_URI if mlflow_enabled else None,
+            "experiment_name": MLFLOW_EXPERIMENT_NAME if mlflow_enabled else None,
+            "run_id": mlflow_run_id,
+            "regressor_model_uri": mlflow_regressor_uri,
+            "classifier_model_uri": mlflow_classifier_uri,
+        },
     }
     write_json(MODELS_ROOT / "metadata.json", metadata)
 
@@ -351,4 +531,8 @@ def train_and_select_models(
         high_value_threshold_value=high_value_threshold,
         train_rows=int(len(X_train)),
         test_rows=int(len(X_test)),
+        mlflow_enabled=bool(mlflow_enabled),
+        mlflow_run_id=mlflow_run_id,
+        mlflow_regressor_uri=mlflow_regressor_uri,
+        mlflow_classifier_uri=mlflow_classifier_uri,
     )

@@ -189,6 +189,10 @@ def run_pipeline(input_csv: str | None, high_value_quantile: float = HIGH_VALUE_
         "test_rows": len(test_df),
         "best_regression_model": train_result.best_regression_model,
         "best_classification_model": train_result.best_classification_model,
+        "mlflow_enabled": train_result.mlflow_enabled,
+        "mlflow_run_id": train_result.mlflow_run_id,
+        "mlflow_regressor_uri": train_result.mlflow_regressor_uri,
+        "mlflow_classifier_uri": train_result.mlflow_classifier_uri,
         "explainability": explain_summary,
     }
 

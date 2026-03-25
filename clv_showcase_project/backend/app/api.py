@@ -54,6 +54,28 @@ def metadata() -> Dict[str, Any]:
     }
 
 
+@router.get("/mlflow-info")
+def mlflow_info() -> Dict[str, Any]:
+    metadata_path = MODELS_ROOT / "metadata.json"
+    metadata_obj = read_json(metadata_path, default={})
+    if not metadata_obj:
+        raise HTTPException(status_code=404, detail="Model metadata not found.")
+
+    mlflow_obj = metadata_obj.get("mlflow", {})
+    return {
+        "enabled": bool(mlflow_obj.get("enabled", False)),
+        "tracking_uri": mlflow_obj.get("tracking_uri"),
+        "experiment_name": mlflow_obj.get("experiment_name"),
+        "run_id": mlflow_obj.get("run_id"),
+        "regressor_model_uri": mlflow_obj.get("regressor_model_uri"),
+        "classifier_model_uri": mlflow_obj.get("classifier_model_uri"),
+        "message": (
+            "MLflow integration details for this trained model set. "
+            "Use run_id/model_uri values to inspect experiments and load registry artifacts."
+        ),
+    }
+
+
 @router.get("/model-metrics")
 def model_metrics() -> Dict[str, Any]:
     metrics = read_json(REPORTS_ROOT / "metrics" / "model_metrics.json", default={})
