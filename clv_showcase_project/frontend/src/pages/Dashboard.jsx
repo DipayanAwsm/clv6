@@ -104,7 +104,7 @@ const Dashboard = () => {
 
       <section className="section-card">
         <div className="section-header-row">
-          <h2>Manager-Ready Overview</h2>
+          <h2>Overview</h2>
           <span className="tag">Self-Guided Demo</span>
         </div>
         <ul>
@@ -129,13 +129,7 @@ const Dashboard = () => {
             value={String(fsCount)}
             subtitle="multi-method consensus"
           />
-          <MetricCard
-            title="Models Tested"
-            value={`${metrics?.summary?.regression_models_tested || 0}R / ${
-              metrics?.summary?.classification_models_tested || 0
-            }C`}
-            subtitle="objective benchmark"
-          />
+
         </div>
 
         <p className="context-note">{metadata?.platform_message || metrics?.summary?.business_takeaway}</p>
@@ -144,7 +138,7 @@ const Dashboard = () => {
 
       <StorylineSection steps={executiveNarrativeSteps} script={managerDemoScript} />
 
-      <BaseDataSection profile={profile} />
+      <BaseDataSection profile={profile} eda={eda} />
       <EDASection eda={eda} />
       <FeatureEngineeringSection narrative={featureEngineeringNarrative} />
       <FeatureSelectionSection featureSelection={featureSelection} />

@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/rituparnapaldas/Documents/Exl_POC/clv6/clv6/clv_showcase_project/mlruns/517982250669560249/d14852b710384f3a83cf276adc579663/artifacts
+end_time: 1776687936094
+entry_point_name: ''
+experiment_id: '517982250669560249'
+lifecycle_stage: active
+run_id: d14852b710384f3a83cf276adc579663
+run_name: classification_LogisticRegression
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1776687933564
+status: 3
+tags: []
+user_id: rituparnapaldas

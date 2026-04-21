@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/rituparnapaldas/Documents/Exl_POC/clv6/clv6/clv_showcase_project/mlruns/517982250669560249/d1b99af2db8745eb9f62f319647cc801/artifacts
+end_time: 1776692821774
+entry_point_name: ''
+experiment_id: '517982250669560249'
+lifecycle_stage: active
+run_id: d1b99af2db8745eb9f62f319647cc801
+run_name: regression_RandomForestRegressor
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1776692762450
+status: 3
+tags: []
+user_id: rituparnapaldas

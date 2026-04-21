@@ -1,5 +1,1 @@
-clv_segment,tenure_months,clv
-High,37.05,4313.48
-Low,31.32,3012.11
-Medium,34.26,3790.22
-Premium,38.39,5167.42
+clv_segment,predicted_clv

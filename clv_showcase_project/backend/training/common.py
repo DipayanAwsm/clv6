@@ -3,14 +3,15 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-import matplotlib
-
 from app.config import DATA_ROOT, MODELS_ROOT, PROJECT_ROOT, REPORTS_ROOT
 from app.utils import get_logger
 
 # Ensure matplotlib can write cache in restricted environments.
 os.environ.setdefault("MPLCONFIGDIR", str(PROJECT_ROOT / ".mplconfig"))
 os.environ.setdefault("XDG_CACHE_HOME", str(PROJECT_ROOT / ".cache"))
+
+import matplotlib
+
 matplotlib.use("Agg")
 
 LOGGER = get_logger("clv-training")

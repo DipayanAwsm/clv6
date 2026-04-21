@@ -9,7 +9,7 @@ import pandas as pd
 
 from app.utils import write_json, write_text
 from training.common import FIGURES_DIR, LOGGER, METRICS_DIR, RAW_DATA_DIR
-from app.config import REPORTS_ROOT
+from app.config import PROJECT_ROOT, REPORTS_ROOT
 
 
 def normalize_column_names(df: pd.DataFrame) -> pd.DataFrame:
@@ -29,13 +29,34 @@ def normalize_column_names(df: pd.DataFrame) -> pd.DataFrame:
 
 def choose_input_csv(preferred_path: str | None = None) -> Path:
     if preferred_path:
-        path = Path(preferred_path)
+        path = Path(preferred_path).expanduser()
         if path.exists():
             return path
 
+    preferred_names = [
+        "predictions_clv_realistic_50000_5yr.csv",
+        "clv_realistic_50000_5yr.csv",
+        "customer_clv_row_level.csv",
+    ]
+
+    search_roots = [RAW_DATA_DIR, PROJECT_ROOT, PROJECT_ROOT.parent]
+    for root in search_roots:
+        for file_name in preferred_names:
+            candidate = root / file_name
+            if candidate.exists():
+                return candidate
+
     csv_files = sorted(RAW_DATA_DIR.glob("*.csv"))
     if csv_files:
-        return csv_files[0]
+        prioritized = sorted(
+            csv_files,
+            key=lambda p: (
+                "predictions_clv_realistic_50000_5yr" not in p.name.lower(),
+                "clv_realistic_50000_5yr" not in p.name.lower(),
+                p.name,
+            ),
+        )
+        return prioritized[0]
 
     raise FileNotFoundError(
         f"No CSV found in {RAW_DATA_DIR}. Provide an input path or add a CSV to raw data."
@@ -122,24 +143,39 @@ def detect_dataset_type(df: pd.DataFrame) -> str:
 
 
 def infer_target_column(df: pd.DataFrame) -> str | None:
-    candidates = [
+    preferred_candidates = [
         "clv",
         "customer_lifetime_value",
         "lifetime_value",
-        "predicted_clv",
+        "clv_target",
         "target_clv",
         "total_customer_value",
     ]
-    for col in candidates:
+
+    for col in preferred_candidates:
         if col in df.columns:
             return col
+
+    # `predicted_clv` is frequently a model output column; use only if it has real variance.
+    if "predicted_clv" in df.columns:
+        pred = pd.to_numeric(df["predicted_clv"], errors="coerce")
+        if pred.nunique(dropna=True) > 10 and float(pred.std(ddof=0) or 0) > 1e-6:
+            return "predicted_clv"
 
     value_like = [
         col
         for col in df.columns
-        if any(token in col for token in ["clv", "lifetime", "value"]) and df[col].dtype != "O"
+        if any(token in col for token in ["clv", "lifetime"]) and df[col].dtype != "O"
     ]
     return value_like[0] if value_like else None
+
+
+def _first_existing(columns: List[str], candidates: List[str]) -> str | None:
+    colset = set(columns)
+    for candidate in candidates:
+        if candidate in colset:
+            return candidate
+    return None
 
 
 def _save_plot(fig: plt.Figure, path: Path) -> None:
@@ -230,6 +266,74 @@ def perform_eda(df: pd.DataFrame, target_col: str | None) -> Dict[str, Any]:
             for name, score in top_drivers[:5]
         ]
 
+    state_col = _first_existing(
+        list(df.columns),
+        [
+            "policyratedstate_tp",
+            "policy_state",
+            "state",
+            "state_code",
+            "region",
+        ],
+    )
+    premium_col = _first_existing(
+        list(df.columns),
+        [
+            "earnedpremium_am",
+            "directwrittenpremium_am",
+            "premium_amount",
+            "annual_premium",
+        ],
+    )
+    loss_col = _first_existing(
+        list(df.columns),
+        [
+            "netloss_paid_am",
+            "grosslosspaio_am",
+            "grosslosspaid_am",
+            "loss_paid_amount",
+        ],
+    )
+    claim_col = _first_existing(
+        list(df.columns),
+        [
+            "claimcount_ct",
+            "claims_count",
+            "claims",
+            "num_claims",
+        ],
+    )
+
+    state_wise_rows: List[Dict[str, Any]] = []
+    state_summary_available = False
+    if state_col and any([premium_col, loss_col, claim_col]):
+        state_df = df[[state_col] + [c for c in [premium_col, loss_col, claim_col] if c]].copy()
+        state_df[state_col] = state_df[state_col].fillna("Unknown")
+        rename_map = {}
+        if premium_col:
+            rename_map[premium_col] = "total_premium"
+        if loss_col:
+            rename_map[loss_col] = "total_losses"
+        if claim_col:
+            rename_map[claim_col] = "total_claim_count"
+
+        state_agg = (
+            state_df.groupby(state_col, observed=True)[list(rename_map.keys())]
+            .sum(numeric_only=True)
+            .rename(columns=rename_map)
+            .reset_index()
+            .rename(columns={state_col: "state"})
+        )
+
+        for metric_col in ["total_premium", "total_losses", "total_claim_count"]:
+            if metric_col not in state_agg.columns:
+                state_agg[metric_col] = 0.0
+
+        state_agg = state_agg.sort_values("total_premium", ascending=False)
+        state_agg.to_csv(METRICS_DIR / "state_wise_eda.csv", index=False)
+        state_wise_rows = state_agg.head(15).to_dict(orient="records")
+        state_summary_available = True
+
     segment_summary_path = METRICS_DIR / "segment_summary.csv"
     if target_col and target_col in df.columns and pd.api.types.is_numeric_dtype(df[target_col]):
         segment_df = df.copy()
@@ -308,6 +412,17 @@ def perform_eda(df: pd.DataFrame, target_col: str | None) -> Dict[str, Any]:
         "## Exploratory Drivers",
     ]
     eda_md.extend([f"- {note}" for note in relationship_notes] or ["- Target-driver correlation analysis was limited by available target fields."])
+    if state_summary_available:
+        eda_md.extend(
+            [
+                "",
+                "## State-Wise Portfolio View",
+                f"- Premium by state was aggregated using `{premium_col}`.",
+                f"- Losses by state were aggregated using `{loss_col}`." if loss_col else "- Loss column unavailable for state-wise losses.",
+                f"- Claim count by state was aggregated using `{claim_col}`." if claim_col else "- Claim count column unavailable for state-wise claims.",
+                "- State summary table saved to `reports/metrics/state_wise_eda.csv`.",
+            ]
+        )
     eda_md.extend(
         [
             "",
@@ -316,15 +431,36 @@ def perform_eda(df: pd.DataFrame, target_col: str | None) -> Dict[str, Any]:
             "- `reports/figures/clv_boxplot.png`",
             "- `reports/figures/correlation_heatmap.png`",
             "- `reports/metrics/segment_summary.csv`",
+            "- `reports/metrics/state_wise_eda.csv`",
         ]
     )
 
     write_text(REPORTS_ROOT / "eda_summary.md", "\n".join(eda_md))
 
+    target_series = (
+        pd.to_numeric(df[target_col], errors="coerce")
+        if target_col and target_col in df.columns
+        else pd.Series(dtype=float)
+    )
     summary_payload = {
         "numeric_columns": numeric_cols,
         "categorical_columns": categorical_cols,
+        "target_column": target_col,
+        "target_readiness": {
+            "target_available": bool(target_col and target_col in df.columns),
+            "target_numeric": bool(target_col and target_col in numeric_cols),
+            "target_unique_values": int(target_series.nunique(dropna=True)) if not target_series.empty else 0,
+            "target_std": float(target_series.std(ddof=0)) if not target_series.empty else 0.0,
+        },
         "top_drivers": [{"feature": k, "abs_corr": v} for k, v in top_drivers],
+        "state_wise_summary": {
+            "available": state_summary_available,
+            "state_column": state_col,
+            "premium_column": premium_col,
+            "loss_column": loss_col,
+            "claim_column": claim_col,
+            "rows": state_wise_rows,
+        },
     }
     write_json(METRICS_DIR / "eda_summary.json", summary_payload)
     LOGGER.info("EDA completed with %d numeric columns and %d categorical columns", len(numeric_cols), len(categorical_cols))

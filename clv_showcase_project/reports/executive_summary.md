@@ -12,9 +12,9 @@
 - Selected final models objectively using held-out performance metrics.
 
 ## Selected Models
-- Regression winner: **Ridge**
-- Classification winner: **LogisticRegression**
-- High-value threshold based on CLV quantile: **0.8** (CLV cutoff: **4771.72**)
+- Regression winner: **LinearRegression**
+- Classification winner: **GradientBoostingClassifier**
+- High-value threshold based on CLV quantile: **0.8** (CLV cutoff: **3297.92**)
 
 ## Business Value
 - Focus retention budget on high CLV customers with elevated churn risk.
@@ -23,5 +23,6 @@
 
 ## Artifacts
 - Target modeled: `clv`
+- CLV target definition: `clv = earnedpremium_am - netloss_paid_am`
 - Model metrics: `reports/metrics/model_metrics.json`
 - Business action playbook: `reports/business_recommendations.md`

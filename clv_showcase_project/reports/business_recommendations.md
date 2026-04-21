@@ -10,6 +10,7 @@
 - Lower CLV / monitor: **40.0%** of customers
 - Medium CLV + healthy activity: **35.0%** of customers
 - High CLV + low churn risk: **25.0%** of customers
+- High CLV + high churn risk: **0.0%** of customers
 
 ## Budget Allocation Guidance
 - Allocate retention budget first to high-value customers with elevated churn risk.

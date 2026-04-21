@@ -107,6 +107,7 @@ class CLVPredictor:
             "classification_model": metadata.get("classification_model_selected", "unknown"),
             "high_value_threshold_value": float(metadata.get("high_value_threshold_value", 0.0)),
             "high_value_quantile": metadata.get("high_value_quantile"),
+            "target_definition": metadata.get("target_definition", {}),
             "mlflow_enabled": bool(mlflow_meta.get("enabled", False)),
             "mlflow_run_id": mlflow_meta.get("run_id"),
         }

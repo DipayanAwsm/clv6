@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -14,6 +14,7 @@ class FeatureEngineeringResult:
     dataframe: pd.DataFrame
     target_column: str
     messages: List[str]
+    target_definition: Dict[str, Any]
 
 
 def _find_column(df: pd.DataFrame, candidates: List[str]) -> Optional[str]:
@@ -28,9 +29,97 @@ def _safe_ratio(numerator: pd.Series, denominator: pd.Series, fill_value: float 
     return ratio.replace([np.inf, -np.inf], np.nan).fillna(fill_value)
 
 
-def engineer_features(df: pd.DataFrame, target_col: str | None) -> FeatureEngineeringResult:
+def _derive_insurance_clv_target(data: pd.DataFrame, messages: List[str]) -> Dict[str, Any]:
+    earned_col = _find_column(
+        data, ["earnedpremium_am", "earned_premium_am", "premium_amount", "annual_premium"]
+    )
+    loss_col = _find_column(
+        data,
+        [
+            "netloss_paid_am",
+            "net_loss_paid_am",
+            "grosslosspaio_am",
+            "grosslosspaid_am",
+            "loss_paid_amount",
+        ],
+    )
+    commission_col = _find_column(data, ["commission_expense_am", "commission_amount"])
+    admin_col = _find_column(data, ["admin_expense_am", "administrative_expense_am"])
+
+    if not earned_col or not loss_col:
+        return {
+            "available": False,
+            "formula": "calibrated_behavioral_fallback",
+            "description": "Insurance CLV formula columns were not fully available.",
+        }
+
+    earned = pd.to_numeric(data[earned_col], errors="coerce").fillna(0.0)
+    loss_paid = pd.to_numeric(data[loss_col], errors="coerce").fillna(0.0)
+
+    data["clv_formula_value"] = earned - loss_paid
+
+    commission = (
+        pd.to_numeric(data[commission_col], errors="coerce").fillna(0.0)
+        if commission_col
+        else pd.Series(0.0, index=data.index)
+    )
+    admin = (
+        pd.to_numeric(data[admin_col], errors="coerce").fillna(0.0)
+        if admin_col
+        else pd.Series(0.0, index=data.index)
+    )
+    data["profit"] = data["clv_formula_value"] - commission - admin
+
+    messages.append(
+        "Derived insurance-style CLV target using `earnedpremium_am - netloss_paid_am` "
+        "and added profitability proxy `profit` after expenses."
+    )
+    return {
+        "available": True,
+        "column": "clv_formula_value",
+        "formula": "clv = earnedpremium_am - netloss_paid_am",
+        "profit_formula": "profit = clv - commission_expense_am - admin_expense_am",
+        "earned_column": earned_col,
+        "loss_column": loss_col,
+        "commission_column": commission_col,
+        "admin_column": admin_col,
+    }
+
+
+def _ensure_high_value_flag(
+    data: pd.DataFrame,
+    target_column: str,
+    messages: List[str],
+    quantile: float = 0.8,
+) -> tuple[pd.DataFrame, float]:
+    threshold = float(pd.to_numeric(data[target_column], errors="coerce").quantile(quantile))
+
+    if "high_value_flag" in data.columns:
+        existing = pd.to_numeric(data["high_value_flag"], errors="coerce").fillna(0).astype(int)
+        if existing.nunique(dropna=True) >= 2:
+            data["high_value_flag"] = existing
+            return data, threshold
+        messages.append(
+            "Source `high_value_flag` was single-class; rebuilt high-value labels from CLV quantile."
+        )
+
+    data["high_value_flag"] = (
+        pd.to_numeric(data[target_column], errors="coerce").fillna(0) >= threshold
+    ).astype(int)
+    return data, threshold
+
+
+def engineer_features(
+    df: pd.DataFrame,
+    target_col: str | None,
+    high_value_quantile: float = 0.8,
+) -> FeatureEngineeringResult:
     data = df.copy()
     messages: List[str] = []
+    target_definition: Dict[str, Any] = {
+        "formula": "calibrated_behavioral_fallback",
+        "description": "Fallback CLV target generated from behavioral proxies.",
+    }
 
     for col in data.columns:
         if data[col].dtype == "O" and col.endswith("_date"):
@@ -184,38 +273,89 @@ def engineer_features(df: pd.DataFrame, target_col: str | None) -> FeatureEngine
             }
         ).fillna("mixed")
 
+    clv_formula_meta = _derive_insurance_clv_target(data, messages)
+
     target_is_usable = False
+    source_target_name: str | None = None
     if target_col and target_col in data.columns:
         as_num = pd.to_numeric(data[target_col], errors="coerce")
         if as_num.nunique(dropna=True) > 10 and as_num.std(ddof=0) > 1e-6:
             data[target_col] = as_num
             target_is_usable = True
+            source_target_name = str(target_col)
         else:
             messages.append(
                 f"Target `{target_col}` had insufficient variance; generated calibrated CLV target for modeling."
             )
 
-    if target_is_usable:
-        resolved_target = str(target_col)
-    else:
-        resolved_target = "clv"
-        noise = np.random.default_rng(42).normal(0, 250, len(data))
-        data["clv"] = (
-            500
-            + 0.75 * data["monetary"].fillna(0)
-            + 35 * data["frequency"].fillna(0)
-            + 10 * data["tenure_months"].fillna(0)
-            - 3.5 * data["recency"].fillna(0)
-            - 250 * data["complaint_rate"].fillna(0)
-            + 850 * data["renewal_ratio"].fillna(0)
-            + 0.002 * pd.to_numeric(data.get("householdincome", 0), errors="coerce").fillna(0)
-            + noise
+    preferred_external_targets = {"predicted_clv", "target_clv"}
+    if clv_formula_meta.get("available"):
+        # Prefer formula-derived CLV when source target is an external prediction column or unusable.
+        should_prefer_formula = (
+            (not target_is_usable)
+            or (source_target_name is not None and source_target_name.lower() in preferred_external_targets)
         )
-        data["clv"] = data["clv"].clip(lower=50)
-        if not target_col or target_col not in data.columns:
-            messages.append(
-                "Target CLV missing in source; generated calibrated demo target for showcase modeling."
+        if should_prefer_formula:
+            data["clv"] = pd.to_numeric(data["clv_formula_value"], errors="coerce").fillna(0.0)
+            resolved_target = "clv"
+            target_definition = {
+                "formula": clv_formula_meta["formula"],
+                "description": "Training target computed from insurance premium and net-loss fields.",
+                "details": clv_formula_meta,
+            }
+            if source_target_name in preferred_external_targets:
+                messages.append(
+                    "Ignored source prediction-style target for model training and used formula-based CLV instead."
+                )
+            target_is_usable = True
+        elif target_is_usable and source_target_name:
+            resolved_target = source_target_name
+            target_definition = {
+                "formula": f"source_column:{source_target_name}",
+                "description": "Training target taken directly from source dataset.",
+            }
+        else:
+            resolved_target = "clv"
+    else:
+        if target_is_usable and source_target_name:
+            resolved_target = source_target_name
+            target_definition = {
+                "formula": f"source_column:{source_target_name}",
+                "description": "Training target taken directly from source dataset.",
+            }
+        else:
+            resolved_target = "clv"
+            noise = np.random.default_rng(42).normal(0, 250, len(data))
+            income_series = (
+                pd.to_numeric(data["householdincome"], errors="coerce").fillna(0.0)
+                if "householdincome" in data.columns
+                else pd.Series(0.0, index=data.index)
             )
+            data["clv"] = (
+                500
+                + 0.75 * data["monetary"].fillna(0)
+                + 35 * data["frequency"].fillna(0)
+                + 10 * data["tenure_months"].fillna(0)
+                - 3.5 * data["recency"].fillna(0)
+                - 250 * data["complaint_rate"].fillna(0)
+                + 850 * data["renewal_ratio"].fillna(0)
+                + 0.002 * income_series
+                + noise
+            )
+            data["clv"] = data["clv"].clip(lower=50)
+            if not target_col or target_col not in data.columns:
+                messages.append(
+                    "Target CLV missing in source; generated calibrated demo target for showcase modeling."
+                )
+
+    data, high_value_threshold = _ensure_high_value_flag(
+        data=data,
+        target_column=resolved_target,
+        messages=messages,
+        quantile=high_value_quantile,
+    )
+    target_definition["high_value_quantile"] = high_value_quantile
+    target_definition["high_value_threshold"] = high_value_threshold
 
     numeric_cols = data.select_dtypes(include=[np.number]).columns
     for col in numeric_cols:
@@ -225,4 +365,9 @@ def engineer_features(df: pd.DataFrame, target_col: str | None) -> FeatureEngine
     data.to_csv(output_path, index=False)
     LOGGER.info("Feature engineering complete. Output saved to %s", output_path)
 
-    return FeatureEngineeringResult(dataframe=data, target_column=resolved_target, messages=messages)
+    return FeatureEngineeringResult(
+        dataframe=data,
+        target_column=resolved_target,
+        messages=messages,
+        target_definition=target_definition,
+    )

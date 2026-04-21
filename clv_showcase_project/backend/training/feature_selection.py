@@ -126,21 +126,31 @@ def run_feature_selection(df: pd.DataFrame, target_col: str) -> FeatureSelection
     score_table["rf_importance"] = pd.Series(rf_model.feature_importances_, index=feature_cols)
 
     max_rfecv_features = min(20, len(feature_cols))
-    rfecv_candidates = list(score_table["rf_importance"].sort_values(ascending=False).head(max_rfecv_features).index)
-    X_rfecv = X[rfecv_candidates]
-
-    rfecv = RFECV(
-        estimator=RandomForestRegressor(n_estimators=180, random_state=42, n_jobs=1),
-        step=1,
-        cv=KFold(n_splits=3, shuffle=True, random_state=42),
-        scoring="r2",
-        min_features_to_select=max(4, min(8, len(rfecv_candidates))),
-        n_jobs=1,
+    rfecv_candidates = list(
+        score_table["rf_importance"].sort_values(ascending=False).head(max_rfecv_features).index
     )
-    rfecv.fit(X_rfecv, y)
-
     rfecv_support = pd.Series(False, index=feature_cols)
-    rfecv_support[rfecv_candidates] = rfecv.support_
+
+    can_run_rfecv = len(selection_df) <= 8000 and len(feature_cols) <= 35 and len(rfecv_candidates) >= 6
+    if can_run_rfecv:
+        X_rfecv = X[rfecv_candidates]
+        rfecv = RFECV(
+            estimator=RandomForestRegressor(n_estimators=120, random_state=42, n_jobs=1),
+            step=1,
+            cv=KFold(n_splits=3, shuffle=True, random_state=42),
+            scoring="r2",
+            min_features_to_select=max(4, min(8, len(rfecv_candidates))),
+            n_jobs=1,
+        )
+        rfecv.fit(X_rfecv, y)
+        rfecv_support[rfecv_candidates] = rfecv.support_
+    else:
+        notes.append(
+            "RFECV skipped for runtime safety on large/high-dimensional data; retained top "
+            "tree-importance features as RFECV proxy."
+        )
+        rfecv_support.loc[rfecv_candidates[:8]] = True
+
     score_table["rfecv"] = rfecv_support.astype(int)
 
     scaler = StandardScaler()

@@ -70,3 +70,23 @@ class HealthResponse(ApiBaseModel):
     status: str
     model_ready: bool
     api_version: str
+
+
+class ModelInfoResponse(ApiBaseModel):
+    best_regression_model: Optional[str] = None
+    best_classification_model: Optional[str] = None
+    regression_metrics: Dict[str, Any] = Field(default_factory=dict)
+    classification_metrics: Dict[str, Any] = Field(default_factory=dict)
+    target_definition: Dict[str, Any] = Field(default_factory=dict)
+    features_used: List[str] = Field(default_factory=list)
+    high_value_threshold_value: Optional[float] = None
+
+
+class BusinessSummaryResponse(ApiBaseModel):
+    total_customers: int
+    total_predicted_clv: float
+    average_predicted_clv: float
+    high_value_percentage: float
+    profitable_percentage: float
+    high_value_customers: Optional[int] = None
+    top_state_by_clv: Optional[str] = None

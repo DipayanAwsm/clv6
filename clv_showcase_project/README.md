@@ -45,6 +45,7 @@ This platform provides:
 - FastAPI
 - Pydantic
 - pandas, numpy, scikit-learn
+- MLflow (experiment tracking + model artifact URIs)
 - SHAP (optional fallback)
 - xgboost (optional fallback)
 - joblib, matplotlib
@@ -140,7 +141,10 @@ Input file may be:
 
 ### Regression target
 Preferred:
-- `clv`, `customer_lifetime_value`, `predicted_clv`, or equivalent
+- Insurance formula target when available:
+  - `CLV = earnedpremium_am - netloss_paid_am`
+- Then: `clv`, `customer_lifetime_value`, or equivalent source column
+- `predicted_clv` is only used if it has real variance
 
 Fallback behavior:
 - If target is missing or has insufficient variance, generate calibrated CLV target from behavioral features:
@@ -262,12 +266,17 @@ Outputs:
 ### Required endpoints
 - `GET /health`
 - `GET /metadata`
+- `GET /mlflow-info`
 - `GET /model-metrics`
 - `GET /eda-summary`
 - `GET /feature-selection-summary`
 - `POST /predict`
 - `POST /predict-batch`
 - `POST /upload-csv-and-predict`
+- `POST /predict/single` (clv7-style alias)
+- `POST /predict/batch` (clv7-style CSV upload alias)
+- `GET /model/info` (clv7-style model metadata alias)
+- `GET /business/summary` (scored portfolio KPI summary)
 
 ### `/predict` response should include
 - predicted_clv
@@ -286,6 +295,15 @@ Outputs:
 - summary (avg CLV, high-value rate, segment mix)
 - preview rows
 - downloadable enriched CSV text
+
+### MLflow behavior
+- Training logs experiments, parameters, metrics, and model artifacts to MLflow.
+- Best models are logged under:
+  - `runs:/<run_id>/models/clv_regressor`
+  - `runs:/<run_id>/models/high_value_classifier`
+- `metadata.json` and `GET /mlflow-info` expose run ID and model URIs.
+- Inference can optionally load models directly from MLflow by setting:
+  - `USE_MLFLOW_MODELS=true`
 
 ---
 
@@ -320,9 +338,25 @@ cd backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-PYTHONPATH=. python -m training.run_pipeline --input-csv <your_input_csv>
+export ENABLE_XGBOOST=false
+PYTHONPATH=. python -m training.run_pipeline --input-csv /Users/rituparnapaldas/Downloads/predictions_clv_realistic_50000_5yr.csv
 PYTHONPATH=. uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
+
+Quick validation run (faster):
+```bash
+PYTHONPATH=. python -m training.run_pipeline --input-csv ../data/raw/predictions_clv_realistic_12000_5yr.csv
+```
+
+### clv6 UI + clv7-style backend mode
+- Keep existing React UI in `frontend/`.
+- Use upgraded backend pipeline in `backend/` with your row-level insurance CSV.
+- Pipeline outputs now include:
+  - `data/processed/training_dataset.csv`
+  - `data/processed/testing_dataset.csv`
+  - `data/processed/scored_customers.csv`
+  - `reports/metrics/business_summary.json`
+  - `backend/models/metadata.json` with explicit `target_definition`
 
 ### Frontend
 ```bash
@@ -419,4 +453,3 @@ Persist training_dataset.csv and testing_dataset.csv.
 - Model training: [train_models.py](/Users/rituparnapaldas/Documents/Exl_POC/clv6/clv6/clv_showcase_project/backend/training/train_models.py)
 - API: [api.py](/Users/rituparnapaldas/Documents/Exl_POC/clv6/clv6/clv_showcase_project/backend/app/api.py)
 - Dashboard: [Dashboard.jsx](/Users/rituparnapaldas/Documents/Exl_POC/clv6/clv6/clv_showcase_project/frontend/src/pages/Dashboard.jsx)
-

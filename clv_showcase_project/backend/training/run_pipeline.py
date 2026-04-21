@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 from typing import Any, Dict
 
 import pandas as pd
@@ -84,6 +85,7 @@ def _write_executive_summary(
         "",
         "## Artifacts",
         f"- Target modeled: `{target_col}`",
+        f"- CLV target definition: `{dataset_meta.get('target_definition', {}).get('formula', 'n/a')}`",
         "- Model metrics: `reports/metrics/model_metrics.json`",
         "- Business action playbook: `reports/business_recommendations.md`",
     ]
@@ -120,7 +122,11 @@ def run_pipeline(input_csv: str | None, high_value_quantile: float = HIGH_VALUE_
     target_col = infer_target_column(working_df)
     perform_eda(working_df, target_col)
 
-    fe_result = engineer_features(working_df, target_col)
+    fe_result = engineer_features(
+        working_df,
+        target_col,
+        high_value_quantile=high_value_quantile,
+    )
     notes.extend(fe_result.messages)
 
     fs_result = run_feature_selection(fe_result.dataframe, fe_result.target_column)
@@ -136,7 +142,12 @@ def run_pipeline(input_csv: str | None, high_value_quantile: float = HIGH_VALUE_
             break
 
     split_df = fe_result.dataframe.copy()
-    train_df, test_df = train_test_split(split_df, test_size=0.2, random_state=42)
+    stratify_col = None
+    if "high_value_flag" in split_df.columns and split_df["high_value_flag"].nunique(dropna=True) >= 2:
+        stratify_col = split_df["high_value_flag"]
+    train_df, test_df = train_test_split(
+        split_df, test_size=0.2, random_state=42, stratify=stratify_col
+    )
     train_path = PROCESSED_DATA_DIR / "training_dataset.csv"
     test_path = PROCESSED_DATA_DIR / "testing_dataset.csv"
     train_df.to_csv(train_path, index=False)
@@ -152,6 +163,7 @@ def run_pipeline(input_csv: str | None, high_value_quantile: float = HIGH_VALUE_
         "high_value_quantile": high_value_quantile,
         "profile": profile,
         "classification_target_column": classification_target_col,
+        "target_definition": fe_result.target_definition,
     }
 
     train_result = train_and_select_models(
@@ -183,6 +195,7 @@ def run_pipeline(input_csv: str | None, high_value_quantile: float = HIGH_VALUE_
         "dataset_type": dataset_type,
         "data_source": data_source,
         "target_column": fe_result.target_column,
+        "target_definition": fe_result.target_definition,
         "train_dataset_path": str(train_path),
         "test_dataset_path": str(test_path),
         "train_rows": len(train_df),

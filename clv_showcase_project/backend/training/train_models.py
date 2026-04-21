@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import nullcontext
 from dataclasses import dataclass
 from datetime import datetime
+import os
 from typing import Any, Dict, List, Tuple
 
 import joblib
@@ -39,13 +40,16 @@ from app.config import (
     MODELS_ROOT,
 )
 from app.utils import write_json
-from training.common import LOGGER, METRICS_DIR, SAMPLE_INPUT_DIR
+from training.common import LOGGER, METRICS_DIR, PROCESSED_DATA_DIR, SAMPLE_INPUT_DIR
 
 try:
     import mlflow
     import mlflow.sklearn
 except Exception:  # pragma: no cover - optional dependency
     mlflow = None  # type: ignore[assignment]
+
+
+ENABLE_XGBOOST = os.getenv("ENABLE_XGBOOST", "false").lower() in {"1", "true", "yes"}
 
 
 @dataclass
@@ -124,9 +128,13 @@ def _regression_candidates() -> List[Tuple[str, Any, bool]]:
         ("LinearRegression", LinearRegression(), True),
         ("Ridge", Ridge(alpha=1.0, random_state=42), True),
         ("Lasso", Lasso(alpha=0.001, random_state=42, max_iter=12000), True),
-        ("RandomForestRegressor", RandomForestRegressor(n_estimators=320, random_state=42, n_jobs=1), False),
+        ("RandomForestRegressor", RandomForestRegressor(n_estimators=180, random_state=42, n_jobs=1), False),
         ("GradientBoostingRegressor", GradientBoostingRegressor(random_state=42), False),
     ]
+
+    if not ENABLE_XGBOOST:
+        LOGGER.info("ENABLE_XGBOOST is false; skipping XGBoost regressor")
+        return candidates
 
     try:
         from xgboost import XGBRegressor
@@ -156,9 +164,13 @@ def _regression_candidates() -> List[Tuple[str, Any, bool]]:
 def _classification_candidates() -> List[Tuple[str, Any, bool]]:
     candidates: List[Tuple[str, Any, bool]] = [
         ("LogisticRegression", LogisticRegression(max_iter=1500), True),
-        ("RandomForestClassifier", RandomForestClassifier(n_estimators=320, random_state=42, n_jobs=1), False),
+        ("RandomForestClassifier", RandomForestClassifier(n_estimators=180, random_state=42, n_jobs=1), False),
         ("GradientBoostingClassifier", GradientBoostingClassifier(random_state=42), False),
     ]
+
+    if not ENABLE_XGBOOST:
+        LOGGER.info("ENABLE_XGBOOST is false; skipping XGBoost classifier")
+        return candidates
 
     try:
         from xgboost import XGBClassifier
@@ -438,6 +450,7 @@ def train_and_select_models(
         "classification": cls_df.to_dict(orient="records"),
         "selected_regression_model": best_reg_name,
         "selected_classification_model": best_cls_name,
+        "target_definition": dataset_meta.get("target_definition", {}),
         "mlflow": {
             "enabled": bool(mlflow_enabled),
             "tracking_uri": MLFLOW_TRACKING_URI if mlflow_enabled else None,
@@ -493,6 +506,7 @@ def train_and_select_models(
         "dataset_type": dataset_meta.get("dataset_type"),
         "data_source": dataset_meta.get("data_source"),
         "target_column": target_col,
+        "target_definition": dataset_meta.get("target_definition", {}),
         "train_rows": int(len(X_train)),
         "test_rows": int(len(X_test)),
         "high_value_quantile": high_value_quantile,
@@ -516,6 +530,88 @@ def train_and_select_models(
 
     sample_batch = X_test.head(25).copy()
     sample_batch.to_csv(SAMPLE_INPUT_DIR / "prediction_sample.csv", index=False)
+
+    # Score full engineered dataset for business summaries and dashboard-friendly artifacts.
+    X_full = df[usable_features].copy()
+    predicted_clv_full = np.array(best_reg_model.predict(X_full), dtype=float)
+    if hasattr(best_cls_model, "predict_proba"):
+        high_value_prob_full = np.array(best_cls_model.predict_proba(X_full)[:, 1], dtype=float)
+    else:
+        high_value_prob_full = np.array(best_cls_model.predict(X_full), dtype=float)
+    high_value_flag_full = (high_value_prob_full >= 0.5).astype(int)
+
+    scored_df = df.copy()
+    scored_df["predicted_clv"] = predicted_clv_full
+    scored_df["high_value_probability"] = high_value_prob_full
+    scored_df["high_value_flag"] = high_value_flag_full
+
+    high_value_cut = max(float(high_value_threshold), 1.0)
+    scored_df["customer_segment"] = np.select(
+        [
+            scored_df["predicted_clv"] >= high_value_cut * 1.2,
+            scored_df["predicted_clv"] >= high_value_cut,
+            scored_df["predicted_clv"] >= high_value_cut * 0.7,
+        ],
+        ["Strategic Premium", "High Value", "Growth Potential"],
+        default="Base Portfolio",
+    )
+    scored_df["action_priority"] = np.select(
+        [
+            (scored_df["high_value_flag"] == 1) & (scored_df["high_value_probability"] >= 0.75),
+            scored_df["high_value_flag"] == 1,
+            scored_df["high_value_probability"] >= 0.4,
+        ],
+        ["critical", "high", "medium"],
+        default="baseline",
+    )
+    scored_df["recommended_action"] = np.select(
+        [
+            scored_df["action_priority"] == "critical",
+            scored_df["action_priority"] == "high",
+            scored_df["action_priority"] == "medium",
+        ],
+        [
+            "Activate urgent retention playbook with executive outreach and proactive servicing.",
+            "Prioritize loyalty and upsell engagement with premium service treatment.",
+            "Run nurture and cross-sell campaigns with monitored budget allocation.",
+        ],
+        default="Use cost-efficient automation and periodic monitoring.",
+    )
+    scored_df.to_csv(PROCESSED_DATA_DIR / "scored_customers.csv", index=False)
+
+    policy_state_col = (
+        "policyratedstate_tp"
+        if "policyratedstate_tp" in scored_df.columns
+        else ("region" if "region" in scored_df.columns else None)
+    )
+    top_state = None
+    if policy_state_col:
+        try:
+            state_scores = (
+                scored_df.groupby(policy_state_col)["predicted_clv"].mean().sort_values(ascending=False)
+            )
+            top_state = None if state_scores.empty else str(state_scores.index[0])
+        except Exception:
+            top_state = None
+
+    profitable_pct = 0.0
+    if "profit" in scored_df.columns:
+        profitable_pct = float((pd.to_numeric(scored_df["profit"], errors="coerce").fillna(0) > 0).mean() * 100)
+    elif "clv_formula_value" in scored_df.columns:
+        profitable_pct = float(
+            (pd.to_numeric(scored_df["clv_formula_value"], errors="coerce").fillna(0) > 0).mean() * 100
+        )
+
+    business_summary = {
+        "total_customers": int(len(scored_df)),
+        "total_predicted_clv": round(float(scored_df["predicted_clv"].sum()), 2),
+        "average_predicted_clv": round(float(scored_df["predicted_clv"].mean()), 2),
+        "high_value_customers": int(scored_df["high_value_flag"].sum()),
+        "high_value_percentage": round(float(scored_df["high_value_flag"].mean() * 100), 2),
+        "profitable_percentage": round(profitable_pct, 2),
+        "top_state_by_clv": top_state,
+    }
+    write_json(METRICS_DIR / "business_summary.json", business_summary)
 
     LOGGER.info(
         "Training complete. Best regression model=%s, best classifier=%s",

@@ -16,7 +16,12 @@ This project supports:
 | `API_PORT` | Yes | `8000` | FastAPI bind port |
 | `CORS_ORIGINS` | Yes | `http://localhost:5173,http://localhost:3000` | Allowed frontend origins |
 | `HIGH_VALUE_QUANTILE` | Optional | `0.8` | Classification threshold quantile |
-| `CLV_INPUT_CSV` | Optional | `../data/raw/customer_clv_row_level.csv` | Default pipeline input path |
+| `CLV_INPUT_CSV` | Optional | `../data/raw/predictions_clv_realistic_50000_5yr.csv` | Default pipeline input path |
+| `ENABLE_MLFLOW` | Optional | `true` | Enable MLflow run/metric/model logging |
+| `MLFLOW_TRACKING_URI` | Optional | `file://../mlruns` | MLflow tracking backend URI |
+| `MLFLOW_EXPERIMENT_NAME` | Optional | `clv_showcase_experiment` | MLflow experiment name |
+| `USE_MLFLOW_MODELS` | Optional | `false` | Load inference models from MLflow URIs instead of local PKLs |
+| `ENABLE_XGBOOST` | Optional | `false` | Enable optional XGBoost candidates (disabled by default for runtime stability) |
 
 ### Frontend (`frontend/.env`)
 | Variable | Required | Example | Purpose |
@@ -31,7 +36,7 @@ cd backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-PYTHONPATH=. python -m training.run_pipeline --input-csv ../data/raw/customer_clv_row_level.csv
+PYTHONPATH=. python -m training.run_pipeline --input-csv ../data/raw/predictions_clv_realistic_50000_5yr.csv
 PYTHONPATH=. uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
@@ -76,6 +81,9 @@ After retraining, restart backend server to load latest model artifacts.
 Run:
 - `GET /health` -> `model_ready: true`
 - `GET /metadata` -> expected model names and threshold
+- `GET /model/info` -> clv7-style metadata alias with target formula and selected features
+- `GET /business/summary` -> scored portfolio KPI summary
+- `GET /mlflow-info` -> run ID and MLflow model URIs
 - `GET /model-metrics` -> benchmark metrics available
 
 ## 7. Release Validation Checklist

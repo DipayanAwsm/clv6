@@ -1,122 +1,121 @@
 {
   "regression": [
     {
+      "model": "LinearRegression",
+      "r2": 1.0,
+      "mae": 2.1627617741160064e-09,
+      "rmse": 3.912969784565709e-09,
+      "mape": 1.1778468550320244e-10
+    },
+    {
       "model": "Ridge",
-      "r2": 0.7752399209145724,
-      "mae": 311.07678502203044,
-      "rmse": 399.5592075212259,
-      "mape": 8.181032002124075
+      "r2": 0.99999999838737,
+      "mae": 0.47005031546494075,
+      "rmse": 0.8314668083956723,
+      "mape": 0.10359712877303018
     },
     {
       "model": "Lasso",
-      "r2": 0.7752142513344578,
-      "mae": 311.1601550506372,
-      "rmse": 399.5820234596708,
-      "mape": 8.183433994999028
-    },
-    {
-      "model": "LinearRegression",
-      "r2": 0.7752139979491043,
-      "mae": 311.16074087195466,
-      "rmse": 399.5822486701308,
-      "mape": 8.18345454471224
-    },
-    {
-      "model": "RandomForestRegressor",
-      "r2": 0.7592457162630589,
-      "mae": 324.86703368055555,
-      "rmse": 413.5314713074612,
-      "mape": 8.541712883804545
+      "r2": 0.9999999973369864,
+      "mae": 0.6039815852865807,
+      "rmse": 1.0684746925958226,
+      "mape": 0.0833993839731182
     },
     {
       "model": "GradientBoostingRegressor",
-      "r2": 0.7520196501762393,
-      "mae": 324.40951515184463,
-      "rmse": 419.69151505738694,
-      "mape": 8.486425707124754
+      "r2": 0.9996141614080994,
+      "mae": 102.9473422351123,
+      "rmse": 406.705814547652,
+      "mape": 25.392683358591867
     },
     {
-      "model": "XGBoostRegressor",
-      "r2": 0.7448241433826881,
-      "mae": 330.09299568684895,
-      "rmse": 425.7369510975874,
-      "mape": 8.612563098339415
+      "model": "RandomForestRegressor",
+      "r2": 0.999442931563115,
+      "mae": 46.547449050000324,
+      "rmse": 488.6881696607333,
+      "mape": 3.1090599450231378
     }
   ],
   "classification": [
     {
-      "model": "LogisticRegression",
-      "accuracy": 0.9166666666666666,
-      "precision": 0.7971014492753623,
-      "recall": 0.7746478873239436,
-      "f1": 0.7857142857142857,
-      "roc_auc": 0.9628636873141965,
-      "confusion_matrix": [
-        [
-          275,
-          14
-        ],
-        [
-          16,
-          55
-        ]
-      ]
-    },
-    {
-      "model": "XGBoostClassifier",
-      "accuracy": 0.9111111111111111,
-      "precision": 0.7671232876712328,
-      "recall": 0.7887323943661971,
-      "f1": 0.7777777777777778,
-      "roc_auc": 0.9553097129489742,
-      "confusion_matrix": [
-        [
-          272,
-          17
-        ],
-        [
-          15,
-          56
-        ]
-      ]
-    },
-    {
       "model": "GradientBoostingClassifier",
-      "accuracy": 0.9111111111111111,
-      "precision": 0.782608695652174,
-      "recall": 0.7605633802816901,
-      "f1": 0.7714285714285715,
-      "roc_auc": 0.9474145913543545,
+      "accuracy": 0.9997,
+      "precision": 1.0,
+      "recall": 0.9985,
+      "f1": 0.9992494370778083,
+      "roc_auc": 0.9999939687499999,
       "confusion_matrix": [
         [
-          274,
-          15
+          8000,
+          0
         ],
         [
-          17,
-          54
+          3,
+          1997
         ]
       ]
     },
     {
       "model": "RandomForestClassifier",
-      "accuracy": 0.9083333333333333,
-      "precision": 0.7878787878787878,
-      "recall": 0.7323943661971831,
-      "f1": 0.7591240875912408,
-      "roc_auc": 0.9527754763877383,
+      "accuracy": 0.9995,
+      "precision": 1.0,
+      "recall": 0.9975,
+      "f1": 0.9987484355444305,
+      "roc_auc": 0.999999875,
       "confusion_matrix": [
         [
-          275,
-          14
+          8000,
+          0
         ],
         [
-          19,
-          52
+          5,
+          1995
+        ]
+      ]
+    },
+    {
+      "model": "LogisticRegression",
+      "accuracy": 0.996,
+      "precision": 0.9939516129032258,
+      "recall": 0.986,
+      "f1": 0.9899598393574297,
+      "roc_auc": 0.998345625,
+      "confusion_matrix": [
+        [
+          7988,
+          12
+        ],
+        [
+          28,
+          1972
         ]
       ]
     }
   ],
-  "selected_regression_model": "Ridge",
-  "selected_classification_model": "LogisticRegression"
+  "selected_regression_model": "LinearRegression",
+  "selected_classification_model": "GradientBoostingClassifier",
+  "target_definition": {
+    "formula": "clv = earnedpremium_am - netloss_paid_am",
+    "description": "Training target computed from insurance premium and net-loss fields.",
+    "details": {
+      "available": true,
+      "column": "clv_formula_value",
+      "formula": "clv = earnedpremium_am - netloss_paid_am",
+      "profit_formula": "profit = clv - commission_expense_am - admin_expense_am",
+      "earned_column": "earnedpremium_am",
+      "loss_column": "netloss_paid_am",
+      "commission_column": "commission_expense_am",
+      "admin_column": "admin_expense_am"
+    },
+    "high_value_quantile": 0.8,
+    "high_value_threshold": 3297.9100000000003
+  },
+  "mlflow": {
+    "enabled": true,
+    "tracking_uri": "file:///Users/rituparnapaldas/Documents/Exl_POC/clv6/clv6/clv_showcase_project/mlruns",
+    "experiment_name": "clv_showcase_experiment",
+    "run_id": "135f575a12184ac98d3edb6d3a6d571b",
+    "regressor_model_uri": null,
+    "classifier_model_uri": null
+  }
 }

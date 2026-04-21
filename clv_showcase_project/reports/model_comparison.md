@@ -1,24 +1,22 @@
 # Model Comparison
 
 ## Regression Models (CLV Prediction)
-| model                     |       r2 |     mae |    rmse |    mape |
-|:--------------------------|---------:|--------:|--------:|--------:|
-| Ridge                     | 0.77524  | 311.077 | 399.559 | 8.18103 |
-| Lasso                     | 0.775214 | 311.16  | 399.582 | 8.18343 |
-| LinearRegression          | 0.775214 | 311.161 | 399.582 | 8.18345 |
-| RandomForestRegressor     | 0.759246 | 324.867 | 413.531 | 8.54171 |
-| GradientBoostingRegressor | 0.75202  | 324.41  | 419.692 | 8.48643 |
-| XGBoostRegressor          | 0.744824 | 330.093 | 425.737 | 8.61256 |
+| model                     |       r2 |           mae |          rmse |         mape |
+|:--------------------------|---------:|--------------:|--------------:|-------------:|
+| LinearRegression          | 1        |   2.16276e-09 |   3.91297e-09 |  1.17785e-10 |
+| Ridge                     | 1        |   0.47005     |   0.831467    |  0.103597    |
+| Lasso                     | 1        |   0.603982    |   1.06847     |  0.0833994   |
+| GradientBoostingRegressor | 0.999614 | 102.947       | 406.706       | 25.3927      |
+| RandomForestRegressor     | 0.999443 |  46.5474      | 488.688       |  3.10906     |
 
 ## Classification Models (High-Value Identification)
 | model                      |   accuracy |   precision |   recall |       f1 |   roc_auc |
 |:---------------------------|-----------:|------------:|---------:|---------:|----------:|
-| LogisticRegression         |   0.916667 |    0.797101 | 0.774648 | 0.785714 |  0.962864 |
-| XGBoostClassifier          |   0.911111 |    0.767123 | 0.788732 | 0.777778 |  0.95531  |
-| GradientBoostingClassifier |   0.911111 |    0.782609 | 0.760563 | 0.771429 |  0.947415 |
-| RandomForestClassifier     |   0.908333 |    0.787879 | 0.732394 | 0.759124 |  0.952775 |
+| GradientBoostingClassifier |     0.9997 |    1        |   0.9985 | 0.999249 |  0.999994 |
+| RandomForestClassifier     |     0.9995 |    1        |   0.9975 | 0.998748 |  1        |
+| LogisticRegression         |     0.996  |    0.993952 |   0.986  | 0.98996  |  0.998346 |
 
 ## Final Model Selection Rationale
-- Selected regression model: **Ridge** based on strongest R2 with competitive MAE/RMSE stability.
-- Selected classification model: **LogisticRegression** based on best F1 and recall balance for premium-customer capture.
+- Selected regression model: **LinearRegression** based on strongest R2 with competitive MAE/RMSE stability.
+- Selected classification model: **GradientBoostingClassifier** based on best F1 and recall balance for premium-customer capture.
 - Selection prioritized business utility: high-value customer miss rate was treated as costly, so recall and F1 were emphasized.
