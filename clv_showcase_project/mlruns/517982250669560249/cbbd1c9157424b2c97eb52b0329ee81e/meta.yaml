@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/rituparnapaldas/Documents/Exl_POC/clv6/clv6/clv_showcase_project/mlruns/517982250669560249/cbbd1c9157424b2c97eb52b0329ee81e/artifacts
+end_time: 1776925462481
+entry_point_name: ''
+experiment_id: '517982250669560249'
+lifecycle_stage: active
+run_id: cbbd1c9157424b2c97eb52b0329ee81e
+run_name: regression_GradientBoostingRegressor
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1776925451796
+status: 3
+tags: []
+user_id: rituparnapaldas

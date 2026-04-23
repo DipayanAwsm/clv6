@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/rituparnapaldas/Documents/Exl_POC/clv6/clv6/clv_showcase_project/mlruns/517982250669560249/bad195f1593c497eb3a53ddc64bf955c/artifacts
+end_time: 1776936295843
+entry_point_name: ''
+experiment_id: '517982250669560249'
+lifecycle_stage: active
+run_id: bad195f1593c497eb3a53ddc64bf955c
+run_name: regression_Ridge
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1776936295585
+status: 3
+tags: []
+user_id: rituparnapaldas

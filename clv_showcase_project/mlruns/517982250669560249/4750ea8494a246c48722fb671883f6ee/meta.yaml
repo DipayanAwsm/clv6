@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/rituparnapaldas/Documents/Exl_POC/clv6/clv6/clv_showcase_project/mlruns/517982250669560249/4750ea8494a246c48722fb671883f6ee/artifacts
+end_time: 1776936296090
+entry_point_name: ''
+experiment_id: '517982250669560249'
+lifecycle_stage: active
+run_id: 4750ea8494a246c48722fb671883f6ee
+run_name: regression_Lasso
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1776936295892
+status: 3
+tags: []
+user_id: rituparnapaldas

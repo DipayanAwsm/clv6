@@ -1,9 +1,10 @@
 {
   "total_customers": 50000,
-  "total_predicted_clv": -238387104.67,
-  "average_predicted_clv": -4767.74,
+  "total_predicted_clv": 100734684.98,
+  "average_predicted_clv": 2014.69,
+  "average_clv_before_prediction": 2014.69,
   "high_value_customers": 9997,
   "high_value_percentage": 19.99,
-  "profitable_percentage": 78.57,
-  "top_state_by_clv": "TX"
+  "profitable_percentage": 83.09,
+  "top_state_by_clv": "CA"
 }

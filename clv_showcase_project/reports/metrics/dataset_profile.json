@@ -1,8 +1,8 @@
 {
-  "source_path": "/Users/rituparnapaldas/Documents/Exl_POC/clv6/clv6/clv_showcase_project/data/raw/predictions_clv_realistic_50000_5yr.csv",
+  "source_path": "../data/clv_realistic_50000_5yr_with_agentname_2.csv",
   "shape": {
     "rows": 50000,
-    "columns": 59
+    "columns": 54
   },
   "columns": [
     "fullpolicy_nb",
@@ -58,12 +58,7 @@
     "propertyvalue",
     "householdincome",
     "creditscore",
-    "predicted_clv",
-    "high_value_flag",
-    "high_value_probability",
-    "customer_segment",
-    "action_priority",
-    "recommended_action"
+    "agentname"
   ],
   "dtypes": {
     "fullpolicy_nb": "int64",
@@ -119,16 +114,14 @@
     "propertyvalue": "int64",
     "householdincome": "int64",
     "creditscore": "int64",
-    "predicted_clv": "float64",
-    "high_value_flag": "int64",
-    "high_value_probability": "float64",
-    "customer_segment": "object",
-    "action_priority": "object",
-    "recommended_action": "object"
+    "agentname": "object"
   },
   "missing_values": {
     "fullpolicy_nb": 0,
-    "customersatisfaction": 0,
+    "customertenure": 0,
+    "claimcount_ct": 0,
+    "earnedexposure_ct": 0,
+    "writenexposure_ct": 0,
     "policyterm_ct": 0,
     "seasonal_in": 0,
     "multiproductdiscount_flag": 0,
@@ -137,12 +130,12 @@
     "new_existing_recurring_flag": 0,
     "netloss_paid_am": 0,
     "policy_renewed_flag": 0,
-    "customertenure": 0,
     "incomebracket": 0,
+    "customerid": 0,
     "coverageamount": 0,
     "deductible": 0,
+    "customersatisfaction": 0,
     "complaintcount": 0,
-    "earnedexposure_ct": 0,
     "paymentmethod": 0,
     "paymentdelaydays": 0,
     "marketingchannel": 0,
@@ -150,15 +143,10 @@
     "propertyvalue": 0,
     "householdincome": 0,
     "creditscore": 0,
-    "predicted_clv": 0,
-    "high_value_flag": 0,
-    "high_value_probability": 0,
-    "customer_segment": 0,
-    "action_priority": 0,
-    "writenexposure_ct": 0,
-    "claimcount_ct": 0,
-    "customerid": 0,
-    "dwellingsquarefeet_ct": 0,
+    "grosslosspaio_am": 0,
+    "ppcvrglimit_am": 0,
+    "admin_expense_am": 0,
+    "commission_expense_am": 0,
     "year": 0,
     "policyeffective_dt": 0,
     "accounting_month": 0,
@@ -171,8 +159,8 @@
     "propertycoveragesubtype_tp": 0,
     "construction_tp": 0,
     "roof_tp": 0,
+    "dwellingsquarefeet_ct": 0,
     "dwellingstory_ct": 0,
-    "grosslosspaio_am": 0,
     "home_age_yr": 0,
     "has_mortgage": 0,
     "ratedinsuredage_ct": 0,
@@ -182,10 +170,7 @@
     "directwrittenpremium_am": 0,
     "earnedpremium_am": 0,
     "tax_am": 0,
-    "commission_expense_am": 0,
-    "admin_expense_am": 0,
-    "ppcvrglimit_am": 0,
-    "recommended_action": 0
+    "agentname": 0
   },
   "duplicate_rows": 0
 }

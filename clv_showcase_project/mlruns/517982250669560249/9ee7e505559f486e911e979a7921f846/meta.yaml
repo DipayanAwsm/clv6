@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/rituparnapaldas/Documents/Exl_POC/clv6/clv6/clv_showcase_project/mlruns/517982250669560249/9ee7e505559f486e911e979a7921f846/artifacts
+end_time: 1776923925415
+entry_point_name: ''
+experiment_id: '517982250669560249'
+lifecycle_stage: active
+run_id: 9ee7e505559f486e911e979a7921f846
+run_name: clv_training_20260423_055709
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1776923829375
+status: 4
+tags: []
+user_id: rituparnapaldas

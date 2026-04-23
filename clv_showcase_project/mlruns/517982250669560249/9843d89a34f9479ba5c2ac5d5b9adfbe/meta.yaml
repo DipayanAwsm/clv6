@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/rituparnapaldas/Documents/Exl_POC/clv6/clv6/clv_showcase_project/mlruns/517982250669560249/9843d89a34f9479ba5c2ac5d5b9adfbe/artifacts
+end_time: 1776923829577
+entry_point_name: ''
+experiment_id: '517982250669560249'
+lifecycle_stage: active
+run_id: 9843d89a34f9479ba5c2ac5d5b9adfbe
+run_name: regression_LinearRegression
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1776923829393
+status: 3
+tags: []
+user_id: rituparnapaldas

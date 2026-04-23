@@ -2,10 +2,10 @@
 
 ## Base Data Overview
 - Rows: **50000**
-- Columns: **59**
+- Columns: **54**
 - Duplicate rows: **0**
-- Numeric columns: **40**
-- Categorical columns: **19**
+- Numeric columns: **37**
+- Categorical columns: **17**
 
 ## Data Quality
 - Missing values report saved to `reports/metrics/missing_values_report.csv`.
@@ -13,7 +13,7 @@
 - Categorical profile saved to `reports/metrics/categorical_summary.csv` when applicable.
 
 ## Business Interpretation
-- CLV skew is moderate, suggesting value concentration exists but is not extreme.
+- CLV target unavailable at this stage; distribution insights deferred.
 - Complaint indicators should be tracked as service-experience risk signals that can suppress long-term value.
 - Payment-delay style features can be used as early warning signals for collections and retention risk.
 - Renewal behavior appears in the dataset and is expected to be a major CLV driver.

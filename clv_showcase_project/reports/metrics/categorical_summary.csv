@@ -15,6 +15,4 @@ new_existing_recurring_flag,3,Existing:21106; New:20248; Recurring:8646
 incomebracket,4,Middle:22204; Upper Middle:15774; Low:7664; High:4358
 paymentmethod,4,Credit Card:17623; Auto Debit:16358; Bank Transfer:8737; Debit Card:7282
 marketingchannel,6,Agent Referral:14150; Online Search:11526; Partner Referral:7804; Social Media:6482; Aggregator:5092
-customer_segment,1,Growth Potential:50000
-action_priority,1,baseline:50000
-recommended_action,1,Manage through cost-efficient automated engagement and periodic monitoring.:50000
+agentname,120,Kavya Sharma:519; Vivaan Gupta:503; Aditya Mehta:497; Vivaan Verma:489; Rohan Sharma:488

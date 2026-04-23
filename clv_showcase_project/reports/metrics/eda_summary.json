@@ -36,10 +36,7 @@
     "agentexperienceyears",
     "propertyvalue",
     "householdincome",
-    "creditscore",
-    "predicted_clv",
-    "high_value_flag",
-    "high_value_probability"
+    "creditscore"
   ],
   "categorical_columns": [
     "customerid",
@@ -58,15 +55,13 @@
     "incomebracket",
     "paymentmethod",
     "marketingchannel",
-    "customer_segment",
-    "action_priority",
-    "recommended_action"
+    "agentname"
   ],
-  "target_column": "predicted_clv",
+  "target_column": null,
   "target_readiness": {
-    "target_available": true,
-    "target_numeric": true,
-    "target_unique_values": 1,
+    "target_available": false,
+    "target_numeric": false,
+    "target_unique_values": 0,
     "target_std": 0.0
   },
   "top_drivers": [],
@@ -80,31 +75,31 @@
       {
         "state": "CA",
         "total_premium": 41525315.25,
-        "total_losses": 132967824.15,
+        "total_losses": 10563120.17,
         "total_claim_count": 4069
       },
       {
         "state": "FL",
         "total_premium": 30407854.92,
-        "total_losses": 72893546.67,
+        "total_losses": 7391102.05,
         "total_claim_count": 4063
       },
       {
         "state": "NY",
         "total_premium": 27962483.7,
-        "total_losses": 85042766.71,
+        "total_losses": 4997201.84,
         "total_claim_count": 2213
       },
       {
         "state": "WA",
         "total_premium": 16405565.92,
-        "total_losses": 47717663.32,
+        "total_losses": 2674877.68,
         "total_claim_count": 1943
       },
       {
         "state": "TX",
         "total_premium": 11792612.53,
-        "total_losses": 27859136.14,
+        "total_losses": 1732845.6,
         "total_claim_count": 2609
       }
     ]
