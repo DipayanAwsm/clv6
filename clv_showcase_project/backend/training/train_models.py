@@ -602,10 +602,19 @@ def train_and_select_models(
             (pd.to_numeric(scored_df["clv_formula_value"], errors="coerce").fillna(0) > 0).mean() * 100
         )
 
+    if "clv" in scored_df.columns:
+        base_clv_series = pd.to_numeric(scored_df["clv"], errors="coerce")
+    elif "clv_formula_value" in scored_df.columns:
+        base_clv_series = pd.to_numeric(scored_df["clv_formula_value"], errors="coerce")
+    else:
+        base_clv_series = pd.to_numeric(scored_df["predicted_clv"], errors="coerce")
+    average_clv_before_prediction = float(base_clv_series.fillna(0).mean())
+
     business_summary = {
         "total_customers": int(len(scored_df)),
         "total_predicted_clv": round(float(scored_df["predicted_clv"].sum()), 2),
         "average_predicted_clv": round(float(scored_df["predicted_clv"].mean()), 2),
+        "average_clv_before_prediction": round(average_clv_before_prediction, 2),
         "high_value_customers": int(scored_df["high_value_flag"].sum()),
         "high_value_percentage": round(float(scored_df["high_value_flag"].mean() * 100), 2),
         "profitable_percentage": round(profitable_pct, 2),

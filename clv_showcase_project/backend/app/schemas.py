@@ -86,6 +86,7 @@ class BusinessSummaryResponse(ApiBaseModel):
     total_customers: int
     total_predicted_clv: float
     average_predicted_clv: float
+    average_clv_before_prediction: Optional[float] = None
     high_value_percentage: float
     profitable_percentage: float
     high_value_customers: Optional[int] = None
