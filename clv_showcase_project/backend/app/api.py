@@ -661,28 +661,77 @@ def dashboard_analytics(states: str | None = None, years: str | None = None) -> 
     else:
         agent_name_series = pd.Series(["Unknown"] * len(data), index=data.index)
 
+    # Prefer explicit agent channel, then marketing channel for channel attribution.
+    channel_source_col = agent_col or marketing_col
+    if channel_source_col:
+        channel_series = data[channel_source_col].fillna("Unknown").astype(str)
+    else:
+        channel_series = pd.Series(["Unknown"] * len(data), index=data.index)
+
+    # Aggregate per (agent, channel) then keep dominant channel per agent.
     agent_perf = (
-        pd.DataFrame({"agentName": agent_name_series, "clv": clv_series})
-        .groupby("agentName", observed=True)
+        pd.DataFrame({"agentName": agent_name_series, "channel": channel_series, "clv": clv_series})
+        .groupby(["agentName", "channel"], observed=True)
         .agg(avgClv=("clv", "mean"), customers=("clv", "size"))
         .reset_index()
+        .sort_values(["agentName", "customers", "avgClv"], ascending=[True, False, False])
+        .drop_duplicates(subset=["agentName"], keep="first")
         .sort_values("avgClv", ascending=False)
+        .reset_index(drop=True)
     )
 
     q33 = 0.0
     q67 = 0.0
+    cluster_algo = "quantile_fallback"
+    cluster_features = ["avgClv", "customers"]
     if not agent_perf.empty:
         q33 = float(agent_perf["avgClv"].quantile(0.33))
         q67 = float(agent_perf["avgClv"].quantile(0.67))
+    cluster_order = ["Best Set", "Core Cohort", "Support Cohort"]
+
+    if len(agent_perf) >= 3:
+        try:
+            from sklearn.cluster import KMeans
+            from sklearn.preprocessing import StandardScaler
+
+            channel_dummies = pd.get_dummies(agent_perf["channel"], prefix="channel")
+            feature_frame = pd.concat(
+                [agent_perf[["avgClv", "customers"]].reset_index(drop=True), channel_dummies.reset_index(drop=True)],
+                axis=1,
+            ).fillna(0.0)
+            scaler = StandardScaler()
+            matrix = scaler.fit_transform(feature_frame)
+
+            kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
+            raw_labels = kmeans.fit_predict(matrix)
+            agent_perf["cluster_idx"] = raw_labels
+
+            # Rank cluster ids by CLV so labels remain business-meaningful.
+            cluster_rank = (
+                agent_perf.groupby("cluster_idx", observed=True)["avgClv"]
+                .mean()
+                .sort_values(ascending=False)
+                .index.tolist()
+            )
+            cluster_map = {
+                cluster_rank[idx]: cluster_order[idx] for idx in range(min(len(cluster_rank), len(cluster_order)))
+            }
+            agent_perf["cluster"] = agent_perf["cluster_idx"].map(cluster_map).fillna("Support Cohort")
+            cluster_algo = "kmeans"
+            cluster_features = list(feature_frame.columns)
+        except Exception as exc:
+            LOGGER.warning("KMeans agent clustering failed; using quantile fallback. Error: %s", exc)
+            agent_perf["cluster"] = np.select(
+                [agent_perf["avgClv"] >= q67, agent_perf["avgClv"] >= q33],
+                ["Best Set", "Core Cohort"],
+                default="Support Cohort",
+            )
+    else:
         agent_perf["cluster"] = np.select(
             [agent_perf["avgClv"] >= q67, agent_perf["avgClv"] >= q33],
             ["Best Set", "Core Cohort"],
             default="Support Cohort",
         )
-    else:
-        agent_perf["cluster"] = "Support Cohort"
-
-    cluster_order = ["Best Set", "Core Cohort", "Support Cohort"]
     cluster_summary_df = (
         agent_perf.groupby("cluster", observed=True)
         .agg(
@@ -708,9 +757,21 @@ def dashboard_analytics(states: str | None = None, years: str | None = None) -> 
         for _, row in cluster_summary_df.iterrows()
     ]
 
+    agent_channel_clusters = [
+        {
+            "agentName": str(row["agentName"]),
+            "channel": str(row["channel"]),
+            "avgClv": round(float(row["avgClv"]), 2),
+            "customers": int(row["customers"]),
+            "cluster": str(row["cluster"]),
+        }
+        for _, row in agent_perf.head(300).iterrows()
+    ]
+
     top_agents = [
         {
             "agentName": str(row["agentName"]),
+            "channel": str(row["channel"]),
             "avgClv": round(float(row["avgClv"]), 2),
             "customers": int(row["customers"]),
             "cluster": str(row["cluster"]),
@@ -807,16 +868,27 @@ def dashboard_analytics(states: str | None = None, years: str | None = None) -> 
             "stateChannelMatrix": state_channel_matrix,
             "bestSource": best_source,
             "agentClusters": agent_clusters,
+            "agentChannelClusters": agent_channel_clusters,
             "topAgents": top_agents,
             "agentClusterMethod": {
                 "columnUsed": agent_name_col or agent_col or "fallback_agent_id",
-                "metric": "Average CLV per Agent Name",
+                "channelColumnUsed": channel_source_col or "fallback_channel",
+                "metric": "Average CLV per Agent Name with channel attribution",
+                "algorithm": cluster_algo,
+                "featureSpace": cluster_features,
                 "quantile33Threshold": round(float(q33), 2),
                 "quantile67Threshold": round(float(q67), 2),
                 "rules": {
-                    "Best Set": "agent_avg_clv >= quantile_67",
-                    "Core Cohort": "quantile_33 <= agent_avg_clv < quantile_67",
-                    "Support Cohort": "agent_avg_clv < quantile_33",
+                    "Best Set": (
+                        "KMeans top centroid by avg CLV (fallback: agent_avg_clv >= quantile_67)"
+                    ),
+                    "Core Cohort": (
+                        "KMeans middle centroid by avg CLV "
+                        "(fallback: quantile_33 <= agent_avg_clv < quantile_67)"
+                    ),
+                    "Support Cohort": (
+                        "KMeans lowest centroid by avg CLV (fallback: agent_avg_clv < quantile_33)"
+                    ),
                 },
             },
         },
