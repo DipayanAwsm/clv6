@@ -184,13 +184,15 @@ export const useDashboardData = (filters: FilterState): DashboardDataBundle => {
         value: totalPredictedClv,
         delta: compareWithPreviousYear(records, (row) => row.clv),
         explanation: 'Total expected lifetime value across filtered customers.',
+        calculation: 'clv= premim - loss',
         format: 'currency'
       },
       {
-        label: 'Average CLV',
+        label: 'Raw average clv',
         value: averageClv,
         delta: compareWithPreviousYear(records, (row) => row.clv) * 0.45,
-        explanation: 'Expected average lifetime profitability per customer.',
+        explanation: 'Average pre-model CLV baseline from observed/formula CLV values before prediction.',
+        calculation: 'How calculated: average clv before prediction = mean(clv) across filtered customers.',
         format: 'currency'
       },
       {
@@ -216,9 +218,9 @@ export const useDashboardData = (filters: FilterState): DashboardDataBundle => {
       }
     ];
 
-    const clvTrend = groupSum(records, 'year', 'clv')
+    const clvTrend = groupAvg(records, 'year', 'clv')
       .sort((a, b) => Number(a.id) - Number(b.id))
-      .map((item) => ({ year: Number(item.id), clv: Number(item.value.toFixed(2)) }));
+      .map((item) => ({ year: Number(item.id), avgClv: Number(item.value.toFixed(2)) }));
 
     const stateClvSnapshot = groupAvg(records, 'state', 'clv')
       .sort((a, b) => b.value - a.value)
@@ -393,6 +395,82 @@ export const useDashboardData = (filters: FilterState): DashboardDataBundle => {
       });
     });
 
+    const agentPerformanceMap = new Map<
+      string,
+      { clvSum: number; customers: number; channelCounts: Map<string, number> }
+    >();
+    records.forEach((row, idx) => {
+      const agentName = `Agent ${String((idx % 120) + 1).padStart(3, '0')}`;
+      const current = agentPerformanceMap.get(agentName) || {
+        clvSum: 0,
+        customers: 0,
+        channelCounts: new Map<string, number>()
+      };
+      current.clvSum += row.clv;
+      current.customers += 1;
+      current.channelCounts.set(
+        row.agentChannel,
+        Number(current.channelCounts.get(row.agentChannel) || 0) + 1
+      );
+      agentPerformanceMap.set(agentName, current);
+    });
+
+    const agentStats = Array.from(agentPerformanceMap.entries()).map(([agentName, stat]) => ({
+      agentName,
+      avgClv: stat.clvSum / Math.max(stat.customers, 1),
+      customers: stat.customers,
+      channel: Array.from(stat.channelCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Unknown'
+    }));
+    const sortedAgentStats = [...agentStats].sort((a, b) => b.avgClv - a.avgClv);
+    const avgAgentClvValues = sortedAgentStats.map((row) => row.avgClv);
+    const quantile = (values: number[], p: number) => {
+      if (!values.length) return 0;
+      const sorted = [...values].sort((a, b) => a - b);
+      const index = (sorted.length - 1) * p;
+      const lower = Math.floor(index);
+      const upper = Math.ceil(index);
+      if (lower === upper) return sorted[lower];
+      const weight = index - lower;
+      return sorted[lower] * (1 - weight) + sorted[upper] * weight;
+    };
+    const q33 = quantile(avgAgentClvValues, 0.33);
+    const q67 = quantile(avgAgentClvValues, 0.67);
+
+    const clusteredAgents = sortedAgentStats.map((row) => {
+      let cluster = 'Support Cohort';
+      if (row.avgClv >= q67) cluster = 'Best Set';
+      else if (row.avgClv >= q33) cluster = 'Core Cohort';
+      return { ...row, cluster };
+    });
+
+    const clusterOrder = ['Best Set', 'Core Cohort', 'Support Cohort'];
+    const agentClusters = clusterOrder.map((cluster) => {
+      const subset = clusteredAgents.filter((row) => row.cluster === cluster);
+      const avgClv = subset.reduce((acc, row) => acc + row.avgClv, 0) / Math.max(subset.length, 1);
+      const customers = subset.reduce((acc, row) => acc + row.customers, 0);
+      return {
+        cluster,
+        avgClv: Number(avgClv.toFixed(2)),
+        agents: subset.length,
+        customers
+      };
+    });
+
+    const topAgents = clusteredAgents.slice(0, 15).map((row) => ({
+      agentName: row.agentName,
+      channel: row.channel,
+      avgClv: Number(row.avgClv.toFixed(2)),
+      customers: row.customers,
+      cluster: row.cluster
+    }));
+    const agentChannelClusters = clusteredAgents.slice(0, 300).map((row) => ({
+      agentName: row.agentName,
+      channel: row.channel,
+      avgClv: Number(row.avgClv.toFixed(2)),
+      customers: row.customers,
+      cluster: row.cluster
+    }));
+
     const bestSource = [...avgClvByMarketing].sort((a, b) => Number(b.avgClv) - Number(a.avgClv))[0];
 
     const positiveDrivers = shapLocalContributions.filter((row) => Number(row.effect) > 0);
@@ -409,7 +487,26 @@ export const useDashboardData = (filters: FilterState): DashboardDataBundle => {
         'Tree-based models captured non-linear relationships between premium, losses, behavior, and retention signals.',
         'XGBoost delivered the strongest balance between prediction accuracy and robustness across holdout data.',
         'Chosen models support both reliable ranking of customer value and practical action prioritization.'
-      ]
+      ],
+      trainingDetails: {
+        dataSource: 'mock://customerRecords',
+        datasetType: 'row_level_demo',
+        targetColumn: 'clv',
+        targetFormula: 'clv = earnedPremium - netLossPaid',
+        highValueQuantile: 0.8,
+        highValueThreshold: 3300,
+        trainRows: Math.round(records.length * 0.8),
+        testRows: records.length - Math.round(records.length * 0.8),
+        splitRatio: '80 / 20',
+        classificationTarget: 'high_value_flag',
+        selectedFeatureCount: featureImportance.length,
+        selectedFeatures: featureImportance.map((row) => String(row.feature)),
+        mlflowRunId: null,
+        notes: [
+          'Mock mode is active. Replace with backend metadata for production run details.',
+          'Train/test split is displayed using demo assumptions for visual walkthrough.'
+        ]
+      }
     };
 
     return {
@@ -434,6 +531,24 @@ export const useDashboardData = (filters: FilterState): DashboardDataBundle => {
           missingPct: 1.9,
           categoricalFields: 7,
           numericFields: 21
+        },
+        trainingRawPreview: {
+          sourceFile: 'mock://customerRecords',
+          columns: Object.keys(records[0] || {}),
+          rows: records.slice(0, 5).map((row) =>
+            Object.entries(row).reduce<Record<string, string | number | boolean | null>>((acc, [key, value]) => {
+              if (typeof value === 'number') {
+                acc[key] = Number.isInteger(value) ? value : Number(value.toFixed(2));
+              } else if (typeof value === 'string' || typeof value === 'boolean' || value === null) {
+                acc[key] = value;
+              } else {
+                acc[key] = String(value);
+              }
+              return acc;
+            }, {})
+          ),
+          rowCount: Math.min(5, records.length),
+          columnCount: Object.keys(records[0] || {}).length
         },
         missingOverview: [
           { field: 'CreditScore', missingPct: 2.8 },
@@ -489,6 +604,23 @@ export const useDashboardData = (filters: FilterState): DashboardDataBundle => {
         profitabilityByChannel,
         agentExpVsClv,
         stateChannelMatrix,
+        agentClusters,
+        agentChannelClusters,
+        topAgents,
+        agentClusterMethod: {
+          columnUsed: 'agentName',
+          channelColumnUsed: 'agentChannel',
+          metric: 'Average CLV per Agent Name with channel attribution',
+          algorithm: 'kmeans_mock_proxy',
+          featureSpace: ['avgClv', 'customers', 'channel'],
+          quantile33Threshold: Number(q33.toFixed(2)),
+          quantile67Threshold: Number(q67.toFixed(2)),
+          rules: {
+            'Best Set': 'Top cohort by KMeans/centroid rank on avg CLV',
+            'Core Cohort': 'Middle cohort by KMeans/centroid rank on avg CLV',
+            'Support Cohort': 'Lower cohort by KMeans/centroid rank on avg CLV'
+          }
+        },
         bestSource: {
           title: `Best Acquisition Source: ${String(bestSource?.channel || 'n/a')}`,
           detail: `This channel currently shows the highest average CLV (${Number(bestSource?.avgClv || 0).toFixed(

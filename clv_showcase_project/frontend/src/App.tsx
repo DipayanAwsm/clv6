@@ -3,11 +3,10 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   Activity,
   BarChart3,
-  BrainCircuit,
   Gauge,
   Layers3,
-  PieChart,
-  Sparkles
+  Sparkles,
+  Users
 } from 'lucide-react';
 
 import Sidebar from './components/layout/Sidebar';
@@ -19,19 +18,17 @@ import type { FilterState, NavItem } from './types';
 
 import DashboardHome from './pages/DashboardHome';
 import EDAOverview from './pages/EDAOverview';
-import Segmentation from './pages/Segmentation';
 import ChannelPerformance from './pages/ChannelPerformance';
+import Segmentation from './pages/Segmentation';
 import ModelInsights from './pages/ModelInsights';
-import ShapExplainability from './pages/ShapExplainability';
 import PredictionStudio from './pages/PredictionStudio';
 
 const navItems: NavItem[] = [
-  { id: 'executive', label: 'Executive Summary', icon: Gauge },
   { id: 'eda', label: 'EDA Overview', icon: Layers3 },
-  { id: 'segmentation', label: 'Segmentation', icon: PieChart },
-  { id: 'channel', label: 'Channel Insights', icon: Activity },
   { id: 'model', label: 'Model Insights', icon: BarChart3 },
-  { id: 'shap', label: 'SHAP Analysis', icon: BrainCircuit },
+  { id: 'executive', label: 'CLTV Outcome Summary', icon: Gauge },
+  { id: 'channel', label: 'Channel Insights', icon: Activity },
+  { id: 'segmentation', label: 'Segmentation', icon: Users },
   { id: 'prediction', label: 'Prediction Studio', icon: Sparkles }
 ];
 
@@ -81,14 +78,12 @@ const App = () => {
     switch (activePage) {
       case 'eda':
         return <EDAOverview data={data} />;
-      case 'segmentation':
-        return <Segmentation data={data} />;
       case 'channel':
         return <ChannelPerformance data={data} />;
+      case 'segmentation':
+        return <Segmentation data={data} />;
       case 'model':
         return <ModelInsights data={data} />;
-      case 'shap':
-        return <ShapExplainability data={data} />;
       case 'prediction':
         return <PredictionStudio data={data} />;
       default:

@@ -6,8 +6,6 @@ import {
   Pie,
   PieChart,
   ResponsiveContainer,
-  Scatter,
-  ScatterChart,
   Tooltip,
   XAxis,
   YAxis
@@ -56,80 +54,63 @@ const Segmentation = ({ data }: SegmentationProps) => {
         takeaway="Segment-level visibility converts model output into clear action playbooks for account and marketing teams."
       />
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <div className="space-y-4">
-          <ChartCard
-            title="Segment Distribution"
-            subtitle="How customers are grouped"
-            helperText="Shows segment share across High Value, Growth, Low Value, and Loss Making cohorts."
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={data.segmentation.segmentDistribution} dataKey="customers" nameKey="name" innerRadius={60} outerRadius={105}>
-                  {data.segmentation.segmentDistribution.map((_, index) => (
-                    <Cell key={index} fill={colors[index % colors.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(value: number) => [
-                    `${Number(value).toLocaleString()} (${toShare(Number(value))})`,
-                    'Customers'
-                  ]}
-                />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </ChartCard>
-
-          <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-800 dark:bg-slate-900">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-              Segment Share Calculation
-            </h3>
-            <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
-              Share (%) = customers in segment / total customers in selected filters.
-            </p>
-            <div className="mt-3 overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead className="bg-slate-100 dark:bg-slate-800">
-                  <tr>
-                    <th className="px-2 py-1 text-left">Segment</th>
-                    <th className="px-2 py-1 text-right">Customers</th>
-                    <th className="px-2 py-1 text-right">Share</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {segmentRows.map((row) => (
-                    <tr key={row.segment} className="border-t border-slate-200 dark:border-slate-700">
-                      <td className="px-2 py-1">{row.segment}</td>
-                      <td className="px-2 py-1 text-right">{row.customers.toLocaleString()}</td>
-                      <td className="px-2 py-1 text-right">{toShare(row.customers)}</td>
-                    </tr>
-                  ))}
-                  <tr className="border-t border-slate-300 font-semibold dark:border-slate-600">
-                    <td className="px-2 py-1">Total</td>
-                    <td className="px-2 py-1 text-right">{totalSegmentCustomers.toLocaleString()}</td>
-                    <td className="px-2 py-1 text-right">100.0%</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </article>
-        </div>
-
+      <div className="grid gap-4">
         <ChartCard
-          title="CLV vs Behavior Score"
-          subtitle="How value and behavior interact"
-          helperText="Highlights pockets that need proactive retention and growth strategies."
+          title="Segment Distribution"
+          subtitle="How customers are grouped"
+          helperText="Shows segment share across High Value, Growth, Low Value, and Loss Making cohorts."
         >
           <ResponsiveContainer width="100%" height="100%">
-            <ScatterChart>
-              <XAxis dataKey="riskScore" name="Behavior Score" />
-              <YAxis dataKey="clv" name="CLV" />
-              <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-              <Scatter data={data.segmentation.clvRiskScatter} fill="#2563eb" />
-            </ScatterChart>
+            <PieChart>
+              <Pie data={data.segmentation.segmentDistribution} dataKey="customers" nameKey="name" innerRadius={60} outerRadius={105}>
+                {data.segmentation.segmentDistribution.map((_, index) => (
+                  <Cell key={index} fill={colors[index % colors.length]} />
+                ))}
+              </Pie>
+              <Tooltip
+                formatter={(value: number) => [
+                  `${Number(value).toLocaleString()} (${toShare(Number(value))})`,
+                  'Customers'
+                ]}
+              />
+              <Legend />
+            </PieChart>
           </ResponsiveContainer>
         </ChartCard>
+
+        <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-800 dark:bg-slate-900">
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+            Segment Share Calculation
+          </h3>
+          <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
+            Share (%) = customers in segment / total customers in selected filters.
+          </p>
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="bg-slate-100 dark:bg-slate-800">
+                <tr>
+                  <th className="px-2 py-1 text-left">Segment</th>
+                  <th className="px-2 py-1 text-right">Customers</th>
+                  <th className="px-2 py-1 text-right">Share</th>
+                </tr>
+              </thead>
+              <tbody>
+                {segmentRows.map((row) => (
+                  <tr key={row.segment} className="border-t border-slate-200 dark:border-slate-700">
+                    <td className="px-2 py-1">{row.segment}</td>
+                    <td className="px-2 py-1 text-right">{row.customers.toLocaleString()}</td>
+                    <td className="px-2 py-1 text-right">{toShare(row.customers)}</td>
+                  </tr>
+                ))}
+                <tr className="border-t border-slate-300 font-semibold dark:border-slate-600">
+                  <td className="px-2 py-1">Total</td>
+                  <td className="px-2 py-1 text-right">{totalSegmentCustomers.toLocaleString()}</td>
+                  <td className="px-2 py-1 text-right">100.0%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">

@@ -27,6 +27,11 @@ interface DashboardHomeProps {
 const segmentColors = ['#2563eb', '#0ea5e9', '#f59e0b', '#10b981', '#ef4444'];
 
 const DashboardHome = ({ data }: DashboardHomeProps) => {
+  const avgClvTrend = data.executive.clvTrend.map((row) => ({
+    ...row,
+    avgClv: Number((row as Record<string, number>).avgClv ?? (row as Record<string, number>).clv ?? 0)
+  }));
+
   const totalSegmentCustomers = data.executive.segmentDistribution.reduce(
     (acc, row) => acc + Number(row.customers || 0),
     0
@@ -60,7 +65,7 @@ const DashboardHome = ({ data }: DashboardHomeProps) => {
   return (
     <section className="space-y-5">
       <SectionHeader
-        title="Executive Summary"
+        title="CLTV Outcome Summary"
         subtitle="Portfolio Health Snapshot"
         question="Where are value and growth concentrated in the current insurance portfolio?"
         takeaway="Use this page to align budget allocation, retention prioritization, and strategic growth focus."
@@ -74,22 +79,22 @@ const DashboardHome = ({ data }: DashboardHomeProps) => {
 
       <div className="grid gap-4 xl:grid-cols-2">
         <ChartCard
-          title="CLV Trend Over Time"
+          title="Average CLV Trend Over Time"
           subtitle="How expected value is moving"
-          helperText="This chart tracks total predicted CLV by year under current filters."
+          helperText="This chart tracks average CLV by year under current filters."
         >
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data.executive.clvTrend}>
+            <LineChart data={avgClvTrend}>
               <XAxis dataKey="year" />
               <YAxis />
               <Tooltip />
-              <Line type="monotone" dataKey="clv" stroke="#2563eb" strokeWidth={2.5} dot={false} />
+              <Line type="monotone" dataKey="avgClv" stroke="#2563eb" strokeWidth={2.5} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>
 
         <ChartCard
-          title="State-wise CLV Snapshot"
+          title="State-wise average CLV Snapshot"
           subtitle="Which states contribute strongest value"
           helperText="Average CLV by state highlights regional value quality and budget focus opportunities."
         >

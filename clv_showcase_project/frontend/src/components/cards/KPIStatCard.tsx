@@ -39,6 +39,11 @@ const KPIStatCard = ({ item, index }: KPIStatCardProps) => {
         <span className="text-xs text-slate-500 dark:text-slate-400">vs prior year</span>
       </div>
       <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">{item.explanation}</p>
+      {item.calculation ? (
+        <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] text-slate-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300">
+          {item.calculation}
+        </div>
+      ) : null}
     </motion.article>
   );
 };

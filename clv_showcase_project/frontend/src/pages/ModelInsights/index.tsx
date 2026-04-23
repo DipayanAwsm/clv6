@@ -45,6 +45,8 @@ const featureSelectionMethods = [
 ];
 
 const ModelInsights = ({ data }: ModelInsightsProps) => {
+  const training = data.modelInsights.trainingDetails;
+
   const regressionColumns = [
     { key: 'model', label: 'Model' },
     {
@@ -85,6 +87,84 @@ const ModelInsights = ({ data }: ModelInsightsProps) => {
         question="Which models performed best for CLV prediction and high-value customer identification?"
         takeaway="The selected models maximize prediction quality while preserving clear business interpretability and actionability."
       />
+
+      <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft dark:border-slate-800 dark:bg-slate-900">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Training Run Details</h3>
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+          Live metadata from the latest training pipeline run, including dataset source, split, target definition, and model context.
+        </p>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-950">
+            <p className="text-[11px] uppercase tracking-wide text-slate-500">Dataset Type</p>
+            <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">{training.datasetType}</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-950">
+            <p className="text-[11px] uppercase tracking-wide text-slate-500">Train/Test Split</p>
+            <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
+              {formatNumber(training.trainRows)} / {formatNumber(training.testRows)} ({training.splitRatio})
+            </p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-950">
+            <p className="text-[11px] uppercase tracking-wide text-slate-500">High-Value Cutoff</p>
+            <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
+              Q{formatNumber(training.highValueQuantile, 2)} ({formatNumber(training.highValueThreshold, 3)})
+            </p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-950">
+            <p className="text-[11px] uppercase tracking-wide text-slate-500">Selected Features</p>
+            <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
+              {formatNumber(training.selectedFeatureCount)}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-950">
+          <p className="text-[11px] uppercase tracking-wide text-slate-500">Input Source File</p>
+          <p className="mt-1 break-all font-mono text-xs text-slate-700 dark:text-slate-200">{training.dataSource}</p>
+        </div>
+
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-950">
+            <p className="text-[11px] uppercase tracking-wide text-slate-500">Target Definition</p>
+            <p className="mt-1 text-xs text-slate-700 dark:text-slate-200">
+              Column: <span className="font-semibold">{training.targetColumn}</span>
+            </p>
+            <p className="mt-1 font-mono text-xs text-slate-700 dark:text-slate-200">{training.targetFormula}</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-950">
+            <p className="text-[11px] uppercase tracking-wide text-slate-500">Classification Target</p>
+            <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">{training.classificationTarget}</p>
+            <p className="mt-2 text-[11px] uppercase tracking-wide text-slate-500">MLflow Run ID</p>
+            <p className="mt-1 break-all font-mono text-xs text-slate-700 dark:text-slate-200">
+              {training.mlflowRunId || 'n/a'}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-3 rounded-xl bg-brand-50 p-3 dark:bg-slate-800">
+          <p className="text-sm font-semibold text-brand-700 dark:text-brand-100">Feature shortlist used for training</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {training.selectedFeatures.map((feature) => (
+              <span key={feature} className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-900 dark:text-slate-200">
+                {feature}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-950">
+          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Training Notes</p>
+          <ul className="mt-2 space-y-1 text-xs text-slate-600 dark:text-slate-300">
+            {training.notes.slice(0, 8).map((note) => (
+              <li key={note} className="flex gap-2">
+                <span className="mt-1.5 h-1 w-1 rounded-full bg-brand-500" />
+                <span>{note}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </article>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-800 dark:bg-slate-900">

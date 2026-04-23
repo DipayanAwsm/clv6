@@ -27,25 +27,35 @@ const piePalette = ['#2563eb', '#0ea5e9', '#06b6d4', '#22c55e', '#f59e0b', '#f97
 
 const EDAOverview = ({ data }: EDAOverviewProps) => {
   const { datasetSummary } = data.eda;
+  const previewColumns = data.eda.trainingRawPreview.columns;
+  const previewRows = data.eda.trainingRawPreview.rows.slice(0, 5);
+  const stateWiseAveragePremium = data.eda.stateWisePremium.map((row) => ({
+    ...row,
+    avgPremium: Number((row as Record<string, number>).avgPremium ?? (row as Record<string, number>).totalPremium ?? 0)
+  }));
+  const stateWiseAverageLosses = data.eda.stateWiseLosses.map((row) => ({
+    ...row,
+    avgLosses: Number((row as Record<string, number>).avgLosses ?? (row as Record<string, number>).totalLosses ?? 0)
+  }));
+
+  const formatCell = (value: string | number | boolean | null | undefined) => {
+    if (value === null || value === undefined || value === '') return '—';
+    if (typeof value === 'number') {
+      return Number.isInteger(value)
+        ? value.toLocaleString()
+        : value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+    }
+    return String(value);
+  };
 
   return (
     <section className="space-y-5">
       <SectionHeader
         title="EDA Overview"
         subtitle="Base Data Readiness"
-        question="What does the base data reveal about quality, distribution, and target readiness before modeling?"
-        takeaway="EDA confirms where value concentration, risk behavior, and data quality constraints require business attention."
       />
 
-      <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft dark:border-slate-800 dark:bg-slate-900">
-        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Base Data</h3>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-          Profile customer data quality, coverage, and target readiness before modeling. This section validates whether
-          premium, losses, claims, and CLV behavior are stable enough for downstream feature engineering and predictive scoring.
-        </p>
-      </article>
-
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-800 dark:bg-slate-900">
           <p className="text-xs uppercase tracking-wide text-slate-500">Rows</p>
           <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">{datasetSummary.rows.toLocaleString()}</p>
@@ -53,10 +63,6 @@ const EDAOverview = ({ data }: EDAOverviewProps) => {
         <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-800 dark:bg-slate-900">
           <p className="text-xs uppercase tracking-wide text-slate-500">Columns</p>
           <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">{datasetSummary.columns.toLocaleString()}</p>
-        </article>
-        <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-800 dark:bg-slate-900">
-          <p className="text-xs uppercase tracking-wide text-slate-500">Missing %</p>
-          <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">{datasetSummary.missingPct}%</p>
         </article>
         <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-800 dark:bg-slate-900">
           <p className="text-xs uppercase tracking-wide text-slate-500">Categorical Fields</p>
@@ -68,23 +74,54 @@ const EDAOverview = ({ data }: EDAOverviewProps) => {
         </article>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <ChartCard
-          title="Missing Value Overview"
-          subtitle="Data completeness by field"
-          helperText="Highlights which fields need cleansing or fallback handling before production scoring."
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data.eda.missingOverview}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="field" tick={{ fontSize: 11 }} />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="missingPct" fill="#f59e0b" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
+      <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft dark:border-slate-800 dark:bg-slate-900">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+          Training Raw Dataset Preview (5 Rows x All Columns)
+        </h3>
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+          This is a direct sample from the training raw dataset used in the CLV pipeline.
+        </p>
+        {data.eda.trainingRawPreview.sourceFile ? (
+          <p className="mt-1 break-all text-xs text-slate-500 dark:text-slate-400">
+            Source: {data.eda.trainingRawPreview.sourceFile}
+          </p>
+        ) : null}
 
+        <div className="mt-3 overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+          <table className="min-w-full text-xs">
+            <thead className="bg-slate-100 dark:bg-slate-800">
+              <tr>
+                {previewColumns.map((column) => (
+                  <th key={column} className="whitespace-nowrap px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-100">
+                    {column}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {previewRows.length ? (
+                previewRows.map((row, rowIndex) => (
+                  <tr key={`preview-row-${rowIndex}`} className="border-t border-slate-200 dark:border-slate-700">
+                    {previewColumns.map((column) => (
+                      <td key={`${rowIndex}-${column}`} className="whitespace-nowrap px-3 py-2 text-slate-700 dark:text-slate-200">
+                        {formatCell(row[column])}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td className="px-3 py-3 text-slate-500 dark:text-slate-400" colSpan={Math.max(previewColumns.length, 1)}>
+                    No training raw preview is available.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <div className="grid gap-4">
         <ChartCard
           title="State Distribution"
           subtitle="Where policies are concentrated"
@@ -104,31 +141,31 @@ const EDAOverview = ({ data }: EDAOverviewProps) => {
 
       <div className="grid gap-4 xl:grid-cols-3">
         <ChartCard
-          title="State-wise Premium"
-          subtitle="Premium by state"
-          helperText="Compares total earned premium contribution across states for portfolio exposure context."
+          title="State-wise average Premium"
+          subtitle="Average premium by state"
+          helperText="Compares average earned premium by state for apples-to-apples portfolio quality comparison."
         >
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data.eda.stateWisePremium}>
+            <BarChart data={stateWiseAveragePremium}>
               <XAxis dataKey="state" />
               <YAxis />
               <Tooltip />
-              <Bar dataKey="totalPremium" fill="#0284c7" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="avgPremium" fill="#0284c7" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
 
         <ChartCard
-          title="State-wise Losses"
-          subtitle="Losses by state"
-          helperText="Highlights where claims cost is concentrated and where loss pressure may require underwriting review."
+          title="State-wise average Losses"
+          subtitle="Average losses by state"
+          helperText="Highlights average loss intensity by state to isolate risk quality beyond pure volume."
         >
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data.eda.stateWiseLosses}>
+            <BarChart data={stateWiseAverageLosses}>
               <XAxis dataKey="state" />
               <YAxis />
               <Tooltip />
-              <Bar dataKey="totalLosses" fill="#f97316" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="avgLosses" fill="#f97316" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -144,53 +181,6 @@ const EDAOverview = ({ data }: EDAOverviewProps) => {
               <YAxis />
               <Tooltip />
               <Bar dataKey="totalClaimCount" fill="#7c3aed" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-3">
-        <ChartCard
-          title="Premium Distribution"
-          subtitle="How premiums are distributed"
-          helperText="Shows concentration of premium bands and potential exposure mix."
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data.eda.premiumDistribution}>
-              <XAxis dataKey="bin" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="count" fill="#0ea5e9" />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard
-          title="Loss Distribution"
-          subtitle="How losses are distributed"
-          helperText="Loss band concentration indicates where underwriting pressure may be building."
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data.eda.lossDistribution}>
-              <XAxis dataKey="bin" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="count" fill="#f97316" />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard
-          title="CLV Distribution"
-          subtitle="How customer value is distributed"
-          helperText="A skewed CLV distribution means a small group may drive disproportionate long-term value."
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data.eda.clvDistribution}>
-              <XAxis dataKey="bin" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="count" fill="#10b981" />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>

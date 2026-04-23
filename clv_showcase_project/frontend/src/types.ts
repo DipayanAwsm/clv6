@@ -56,6 +56,7 @@ export interface KPIItem {
   value: number;
   delta: number;
   explanation: string;
+  calculation?: string;
   format: 'currency' | 'number' | 'percent';
 }
 
@@ -119,6 +120,13 @@ export interface DashboardDataBundle {
   };
   eda: {
     datasetSummary: Record<string, number>;
+    trainingRawPreview: {
+      sourceFile: string | null;
+      columns: string[];
+      rows: Array<Record<string, string | number | boolean | null>>;
+      rowCount: number;
+      columnCount: number;
+    };
     missingOverview: ChartPoint[];
     premiumDistribution: ChartPoint[];
     lossDistribution: ChartPoint[];
@@ -163,6 +171,19 @@ export interface DashboardDataBundle {
     profitabilityByChannel: ChartPoint[];
     agentExpVsClv: ChartPoint[];
     stateChannelMatrix: ChartPoint[];
+    agentClusters: ChartPoint[];
+    agentChannelClusters: ChartPoint[];
+    topAgents: ChartPoint[];
+    agentClusterMethod?: {
+      columnUsed: string;
+      channelColumnUsed?: string;
+      metric: string;
+      algorithm?: string;
+      featureSpace?: string[];
+      quantile33Threshold: number;
+      quantile67Threshold: number;
+      rules: Record<string, string>;
+    };
     bestSource: RecommendationItem;
   };
   modelInsights: {
@@ -173,6 +194,22 @@ export interface DashboardDataBundle {
     featureImportance: ChartPoint[];
     confusionMatrix: { label: string; value: number; tone: 'good' | 'neutral' | 'risk' }[];
     rationale: string[];
+    trainingDetails: {
+      dataSource: string;
+      datasetType: string;
+      targetColumn: string;
+      targetFormula: string;
+      highValueQuantile: number;
+      highValueThreshold: number;
+      trainRows: number;
+      testRows: number;
+      splitRatio: string;
+      classificationTarget: string;
+      selectedFeatureCount: number;
+      selectedFeatures: string[];
+      mlflowRunId: string | null;
+      notes: string[];
+    };
   };
   shap: {
     whatIsShap: string[];
