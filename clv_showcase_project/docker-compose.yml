@@ -1,23 +1,19 @@
-version: '3.9'
-
 services:
   backend:
     build:
       context: ./backend
-    container_name: clv_backend
+    restart: unless-stopped
     ports:
       - '8000:8000'
     environment:
       - CLV_PROJECT_ROOT=/app
       - API_HOST=0.0.0.0
       - API_PORT=8000
-      - CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173
       - HIGH_VALUE_QUANTILE=0.8
       - ENABLE_MLFLOW=true
       - MLFLOW_TRACKING_URI=file:///app/mlruns
-      - MLFLOW_EXPERIMENT_NAME=clv_showcase_experiment
       - USE_MLFLOW_MODELS=false
-      - ENABLE_XGBOOST=false
     volumes:
       - ./data:/app/data
       - ./reports:/app/reports
@@ -27,7 +23,9 @@ services:
   frontend:
     build:
       context: ./frontend
-    container_name: clv_frontend
+      args:
+        VITE_API_BASE_URL: http://localhost:8000
+    restart: unless-stopped
     ports:
       - '3000:3000'
     depends_on:
