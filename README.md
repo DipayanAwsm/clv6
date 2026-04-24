@@ -27,3 +27,5 @@ REST APIs, JSON, Axios Enables communication between frontend and backend.
 Deployment Stack
 Azure App Service (Backend), Azure Static Web Apps (Frontend) Hosts and runs the application in the
 cloud.
+===============
+CLV=f(x)=β 0+β1 ⋅netloss_paid_am+β2⋅tax_am+β3 ⋅householdincome+β4 ⋅creditscore+β 5claimcount_ct+β 6claim_rate......
