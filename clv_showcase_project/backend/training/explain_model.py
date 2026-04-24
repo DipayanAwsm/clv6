@@ -10,7 +10,7 @@ from sklearn.inspection import permutation_importance
 
 from app.config import MODELS_ROOT, REPORTS_ROOT
 from app.utils import write_text
-from training.common import FIGURES_DIR, METRICS_DIR
+from training.common import FIGURES_DIR, METRICS_DIR, PROCESSED_DATA_DIR
 
 
 def _save_fig(path):
@@ -198,7 +198,7 @@ def run_explainability(df: pd.DataFrame, target_col: str, selected_features: Lis
 
 
 if __name__ == "__main__":
-    engineered = pd.read_csv("data/processed/engineered_dataset.csv")
+    engineered = pd.read_csv(PROCESSED_DATA_DIR / "engineered_dataset.csv")
     target = "clv" if "clv" in engineered.columns else engineered.columns[-1]
     features = [col for col in engineered.columns if col not in {target, "customer_id"}]
     run_explainability(engineered, target, features)

@@ -17,7 +17,7 @@ cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-PYTHONPATH=. python -m training.run_pipeline --input-csv ../data/clv_realistic_50000_5yr_with_agentname.csv
+PYTHONPATH=. python -m training.run_pipeline --input-csv ./data/clv_realistic_50000_5yr_with_agentname.csv
 ```
 
 Run backend and frontend in two terminals:
@@ -51,7 +51,7 @@ Open:
 ## 3. Default Input Data
 
 Default training command uses:
-- `data/clv_realistic_50000_5yr_with_agentname.csv`
+- `backend/data/clv_realistic_50000_5yr_with_agentname.csv`
 
 You can train with another file:
 
@@ -92,9 +92,9 @@ The pipeline applies multiple methods and uses consensus shortlisting:
 Final selected features are those that repeatedly rank well across methods.
 
 Artifacts:
-- `reports/metrics/feature_selection_scores.csv`
-- `reports/metrics/feature_selection_summary.json`
-- `reports/feature_selection_summary.md`
+- `backend/reports/metrics/feature_selection_scores.csv`
+- `backend/reports/metrics/feature_selection_summary.json`
+- `backend/reports/feature_selection_summary.md`
 
 ## 7. Models Trained
 
@@ -122,6 +122,10 @@ clv_showcase_project/
 │   ├── app/                 # FastAPI routes, schemas, predictor, config
 │   ├── training/            # end-to-end training pipeline modules
 │   ├── models/              # saved regressor/classifier/preprocessing/metadata
+│   ├── data/                # backend-owned input/output datasets
+│   ├── reports/             # backend-generated metrics + figures
+│   ├── docs/                # generated assumptions + story docs
+│   ├── mlruns/              # MLflow tracking files
 │   ├── requirements.txt
 │   ├── Dockerfile
 │   └── main.py
@@ -135,11 +139,6 @@ clv_showcase_project/
 │   ├── package.json
 │   ├── Dockerfile
 │   └── vite.config.ts
-├── data/
-│   ├── raw/
-│   └── processed/
-├── reports/
-├── docs/
 ├── docker-compose.yml
 ├── Makefile
 └── README.md
@@ -155,7 +154,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 
 # Train
-PYTHONPATH=. python -m training.run_pipeline --input-csv data/clv_realistic_50000_5yr_with_agentname_2.csv
+PYTHONPATH=. python -m training.run_pipeline --input-csv ./data/clv_realistic_50000_5yr_with_agentname.csv
 
 # Run API
 PYTHONPATH=. uvicorn main:app --host 0.0.0.0 --port 8000 --reload
@@ -189,7 +188,7 @@ docker compose up --build
 2. Backend install:
    - `cd backend && python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt`
 3. Train models:
-   - `cd backend && source .venv/bin/activate && PYTHONPATH=. python -m training.run_pipeline --input-csv ../data/clv_realistic_50000_5yr_with_agentname.csv`
+   - `cd backend && source .venv/bin/activate && PYTHONPATH=. python -m training.run_pipeline --input-csv ./data/clv_realistic_50000_5yr_with_agentname.csv`
 4. Start backend behind reverse proxy:
    - `cd backend && source .venv/bin/activate && PYTHONPATH=. uvicorn main:app --host 0.0.0.0 --port 8000`
 5. Build frontend and serve static assets:
@@ -201,6 +200,7 @@ docker compose up --build
 3. Set backend env vars (`HIGH_VALUE_QUANTILE`, `ENABLE_MLFLOW`, etc.)
 4. Set frontend build arg/env `VITE_API_BASE_URL` to backend public URL
 5. Attach Azure Files/Blob strategy for persistent artifacts if needed (`data`, `reports`, `mlruns`, `models`)
+   - In this repo these folders are under `backend/` (`backend/data`, `backend/reports`, `backend/mlruns`, `backend/models`).
 
 ## 12. Troubleshooting
 
@@ -208,7 +208,7 @@ docker compose up --build
   - `cd frontend && rm -rf node_modules package-lock.json && npm install && npm run dev`
 - Backend starts but models missing:
   - Run training once:
-    - `cd backend && source .venv/bin/activate && PYTHONPATH=. python -m training.run_pipeline --input-csv ../data/clv_realistic_50000_5yr_with_agentname.csv`
+    - `cd backend && source .venv/bin/activate && PYTHONPATH=. python -m training.run_pipeline --input-csv ./data/clv_realistic_50000_5yr_with_agentname.csv`
 - Wrong input file used:
   - `cd backend && source .venv/bin/activate && PYTHONPATH=. python -m training.run_pipeline --input-csv /absolute/path/file.csv`
 

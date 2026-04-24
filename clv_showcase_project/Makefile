@@ -11,7 +11,7 @@ NPM ?= npm
 API_HOST ?= 0.0.0.0
 API_PORT ?= 8000
 FRONTEND_PORT ?= 5173
-INPUT_CSV ?= $(PROJECT_ROOT)/data/clv_realistic_50000_5yr_with_agentname.csv
+INPUT_CSV ?= $(PROJECT_ROOT)/backend/data/clv_realistic_50000_5yr_with_agentname.csv
 
 .PHONY: help install install-backend install-frontend train train-50k backend frontend dev quickstart docker-up docker-down docker-logs clean-frontend
 
@@ -36,7 +36,7 @@ train:
 	cd $(BACKEND_DIR) && PYTHONPATH=. MPLCONFIGDIR=../.mplconfig $(PYTHON) -m training.run_pipeline --input-csv "$(INPUT_CSV)"
 
 train-50k:
-	$(MAKE) train INPUT_CSV="$(PROJECT_ROOT)/data/clv_realistic_50000_5yr_with_agentname.csv"
+	$(MAKE) train INPUT_CSV="$(PROJECT_ROOT)/backend/data/clv_realistic_50000_5yr_with_agentname.csv"
 
 backend:
 	cd $(BACKEND_DIR) && PYTHONPATH=. uvicorn main:app --host $(API_HOST) --port $(API_PORT) --reload

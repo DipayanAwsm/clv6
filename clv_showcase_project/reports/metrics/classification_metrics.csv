@@ -1,4 +1,0 @@
-model,accuracy,precision,recall,f1,roc_auc,confusion_matrix
-GradientBoostingClassifier,0.9997,1.0,0.9985,0.9992494370778083,0.99996015625,"[[8000, 0], [3, 1997]]"
-RandomForestClassifier,0.9995,1.0,0.9975,0.9987484355444305,0.99999984375,"[[8000, 0], [5, 1995]]"
-LogisticRegression,0.9974,0.9959798994974874,0.991,0.993483709273183,0.9998756875,"[[7992, 8], [18, 1982]]"

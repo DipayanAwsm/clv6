@@ -15,10 +15,11 @@ services:
       - MLFLOW_TRACKING_URI=file:///app/mlruns
       - USE_MLFLOW_MODELS=false
     volumes:
-      - ./data:/app/data
-      - ./reports:/app/reports
+      - ./backend/data:/app/data
+      - ./backend/reports:/app/reports
+      - ./backend/docs:/app/docs
       - ./backend/models:/app/models
-      - ./mlruns:/app/mlruns
+      - ./backend/mlruns:/app/mlruns
 
   frontend:
     build:

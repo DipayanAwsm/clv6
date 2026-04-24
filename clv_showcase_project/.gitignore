@@ -13,8 +13,10 @@ node_modules/
 frontend/dist/
 
 # Data and artifacts
-reports/figures/*.png
 backend/models/*.pkl
+backend/reports/figures/*.png
+backend/mlruns/
+mlruns/
 *.log
 
 # OS / editor

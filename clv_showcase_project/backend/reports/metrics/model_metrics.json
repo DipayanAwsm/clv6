@@ -1,0 +1,121 @@
+{
+  "regression": [
+    {
+      "model": "Ridge",
+      "r2": 0.999943917073907,
+      "mae": 110.91659356869734,
+      "rmse": 155.0575372019344,
+      "mape": 6.036035408103441
+    },
+    {
+      "model": "LinearRegression",
+      "r2": 0.9999439166342036,
+      "mae": 110.91009175866763,
+      "rmse": 155.05814504470973,
+      "mape": 6.0938047203510335
+    },
+    {
+      "model": "Lasso",
+      "r2": 0.9999425104193641,
+      "mae": 112.30521880507939,
+      "rmse": 156.99004710057224,
+      "mape": 8.515162602225471
+    },
+    {
+      "model": "GradientBoostingRegressor",
+      "r2": 0.9995296868470703,
+      "mae": 171.5529933977086,
+      "rmse": 449.0256101816744,
+      "mape": 25.59155231639103
+    },
+    {
+      "model": "RandomForestRegressor",
+      "r2": 0.9994258980332554,
+      "mae": 144.44552558333348,
+      "rmse": 496.1032438696298,
+      "mape": 13.544420722884503
+    }
+  ],
+  "classification": [
+    {
+      "model": "GradientBoostingClassifier",
+      "accuracy": 0.9771,
+      "precision": 0.939454094292804,
+      "recall": 0.9465,
+      "f1": 0.9429638854296388,
+      "roc_auc": 0.9972351875,
+      "confusion_matrix": [
+        [
+          7878,
+          122
+        ],
+        [
+          107,
+          1893
+        ]
+      ]
+    },
+    {
+      "model": "RandomForestClassifier",
+      "accuracy": 0.9758,
+      "precision": 0.9355797819623389,
+      "recall": 0.944,
+      "f1": 0.9397710303633648,
+      "roc_auc": 0.9968427500000001,
+      "confusion_matrix": [
+        [
+          7870,
+          130
+        ],
+        [
+          112,
+          1888
+        ]
+      ]
+    },
+    {
+      "model": "LogisticRegression",
+      "accuracy": 0.9758,
+      "precision": 0.9408224674022067,
+      "recall": 0.938,
+      "f1": 0.9394091136705057,
+      "roc_auc": 0.9958778125,
+      "confusion_matrix": [
+        [
+          7882,
+          118
+        ],
+        [
+          124,
+          1876
+        ]
+      ]
+    }
+  ],
+  "selected_regression_model": "Ridge",
+  "selected_classification_model": "GradientBoostingClassifier",
+  "target_definition": {
+    "formula": "clv = earnedpremium_am - netloss_paid_am",
+    "description": "Training target computed from insurance premium and net-loss fields.",
+    "details": {
+      "available": true,
+      "column": "clv_formula_value",
+      "formula": "clv = earnedpremium_am - netloss_paid_am",
+      "profit_formula": "profit = clv - commission_expense_am - admin_expense_am",
+      "earned_column": "earnedpremium_am",
+      "loss_column": "netloss_paid_am",
+      "commission_column": "commission_expense_am",
+      "admin_column": "admin_expense_am"
+    },
+    "high_value_quantile": 0.8,
+    "high_value_threshold": 3297.9100000000003
+  },
+  "mlflow": {
+    "enabled": true,
+    "tracking_uri": "file:///Users/rituparnapaldas/Documents/Exl_POC/clv6/clv6/clv_showcase_project/backend/mlruns",
+    "experiment_name": "clv_showcase_experiment",
+    "run_id": "cf2e219d6a83426d8cc671d333bd51b2",
+    "regressor_model_uri": null,
+    "classifier_model_uri": null
+  }
+}

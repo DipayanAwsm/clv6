@@ -9,7 +9,7 @@ import pandas as pd
 
 from app.utils import write_json, write_text
 from training.common import FIGURES_DIR, LOGGER, METRICS_DIR, RAW_DATA_DIR
-from app.config import PROJECT_ROOT, REPORTS_ROOT
+from app.config import DATA_ROOT, PROJECT_ROOT, REPORTS_ROOT
 
 
 def normalize_column_names(df: pd.DataFrame) -> pd.DataFrame:
@@ -34,12 +34,14 @@ def choose_input_csv(preferred_path: str | None = None) -> Path:
             return path
 
     preferred_names = [
+        "clv_realistic_50000_5yr_with_agentname.csv",
+        "clv_realistic_50000_5yr_with_agentname_2.csv",
         "predictions_clv_realistic_50000_5yr.csv",
         "clv_realistic_50000_5yr.csv",
         "customer_clv_row_level.csv",
     ]
 
-    search_roots = [RAW_DATA_DIR, PROJECT_ROOT, PROJECT_ROOT.parent]
+    search_roots = [DATA_ROOT, RAW_DATA_DIR, PROJECT_ROOT, PROJECT_ROOT.parent]
     for root in search_roots:
         for file_name in preferred_names:
             candidate = root / file_name
@@ -59,7 +61,7 @@ def choose_input_csv(preferred_path: str | None = None) -> Path:
         return prioritized[0]
 
     raise FileNotFoundError(
-        f"No CSV found in {RAW_DATA_DIR}. Provide an input path or add a CSV to raw data."
+        f"No CSV found in {DATA_ROOT} (or {RAW_DATA_DIR}). Provide an input path or add a CSV to backend/data."
     )
 
 

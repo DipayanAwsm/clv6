@@ -45,6 +45,7 @@ def _load_training_raw_preview(profile: Dict[str, Any]) -> Dict[str, Any]:
             pass
 
     # Fallback: default raw file location used by the project.
+    candidate_paths.append(REPORTS_ROOT.parent / "data" / "clv_realistic_50000_5yr_with_agentname.csv")
     candidate_paths.append(REPORTS_ROOT.parent / "data" / "raw" / "predictions_clv_realistic_50000_5yr.csv")
 
     for path in candidate_paths:
